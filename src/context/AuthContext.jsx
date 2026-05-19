@@ -9,11 +9,19 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await api.get('/auth/me');
         setUser(response.data.user);
       } catch (error) {
-        // Si falla (ej. 401), el usuario no está autenticado
+        // Si falla (ej. 401 o token inválido), el usuario no está autenticado
+        localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
       } finally {

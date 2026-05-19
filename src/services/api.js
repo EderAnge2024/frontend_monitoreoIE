@@ -24,8 +24,11 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       
-      // Solo redirigir si no estamos ya en la página de login para evitar bucles infinitos
-      if (!window.location.pathname.includes('/login')) {
+      // Evitar redirecciones infinitas si ya estamos en rutas públicas de autenticación
+      const publicPaths = ['/login', '/forgot-password', '/reset-password'];
+      const isPublicPath = publicPaths.some(path => window.location.pathname.includes(path));
+      
+      if (!isPublicPath) {
         window.location.href = '/login';
       }
     }
