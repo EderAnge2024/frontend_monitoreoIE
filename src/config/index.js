@@ -1,10 +1,9 @@
-// Obtener la URL base desde las variables de entorno o usar el fallback de desarrollo/producción
+// Obtener la URL base desde las variables de entorno de Vite
 let baseApiUrl = import.meta.env.VITE_API_URL;
 
 if (!baseApiUrl) {
-  baseApiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5000/api'
-    : 'https://bakend-monitoreoie.onrender.com/api';
+  // En desarrollo local usará este fallback. En producción (Vercel) dependerá obligatoriamente de la variable de entorno.
+  baseApiUrl = 'http://localhost:5000/api';
 }
 
 // Asegurar que la URL no tenga una barra inclinada al final
