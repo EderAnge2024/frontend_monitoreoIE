@@ -41,12 +41,32 @@ const ProtectedRoute = ({ children, roles = [] }) => {
   return <DashboardLayout>{children}</DashboardLayout>;
 };
 
+// Evita que usuarios autenticados accedan a login/forgot-password/reset-password y sufran parpadeos
+const PublicRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <div className="fade-in">Cargando aplicación...</div>
+    </div>
+  );
+
+  if (user) {
+    if (user.role === 'docente') {
+      return <Navigate to="/mis-monitoreos" />;
+    }
+    return <Navigate to="/dashboard" />;
+  }
+
+  return children;
+};
+
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+      <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+      <Route path="/reset-password/:token" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
       
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       
