@@ -275,6 +275,7 @@ const NuevoMonitoreoPage = () => {
                 backgroundColor: 'var(--background)'
               }}>
                 {docentes
+                  .filter(d => d.estado === true) // Omitir docentes cesados
                   .filter(d => formData.tipo_monitoreo === 'Tutoría' ? d.tutor === true : true)
                   .filter(d => {
                     const full = `${d.nombres} ${d.apellidos} ${d.dni}`.toLowerCase();
