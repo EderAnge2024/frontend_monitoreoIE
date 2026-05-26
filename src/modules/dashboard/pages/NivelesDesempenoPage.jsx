@@ -114,8 +114,8 @@ const NivelesDesempenoPage = () => {
 
   // Check for coverage gaps/overlaps
   const sorted = [...niveles].sort((a, b) => a.puntaje_minimo - b.puntaje_minimo);
-  const hasGap = sorted.some((n, i) => i > 0 && n.puntaje_minimo > sorted[i - 1].puntaje_maximo + 1);
-  const hasOverlap = sorted.some((n, i) => i > 0 && n.puntaje_minimo <= sorted[i - 1].puntaje_maximo);
+  const hasGap = sorted.some((n, i) => i > 0 && Number(n.puntaje_minimo) > Number(sorted[i - 1].puntaje_maximo));
+  const hasOverlap = sorted.some((n, i) => i > 0 && Number(n.puntaje_minimo) <= Number(sorted[i - 1].puntaje_maximo));
 
   if (loading) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Cargando niveles...</div>;
 
