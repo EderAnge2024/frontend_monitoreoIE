@@ -211,7 +211,7 @@ const HistorialMonitoreoPage = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ backgroundColor: 'rgba(0,0,0,0.025)', borderBottom: '1px solid var(--border)' }}>
-                  {['FECHA', ...(isDocente ? [] : ['DOCENTE']), 'INSTRUMENTO', ...(isAdmin ? ['INSTITUCIÓN'] : []), 'EVALUADOR', 'VISITA', 'TIPO', 'PUNTAJE', 'ESTADO', ''].map((h, i) => (
+                  {['FECHA', ...(isDocente ? [] : ['DOCENTE']), 'INSTRUMENTO', ...(isAdmin ? ['INSTITUCIÓN'] : []), 'EVALUADOR', 'VISITA', 'TIPO', 'PUNTAJE', 'NIVEL', 'ESTADO', ''].map((h, i) => (
                     <th key={i} style={{ padding: '0.875rem 1rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', textAlign: i === 0 ? 'left' : 'left', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -248,9 +248,24 @@ const HistorialMonitoreoPage = () => {
                       </span>
                     </td>
                     <td style={{ padding: '1rem' }}>
-                      <span style={{ fontWeight: '800', fontSize: '1.05rem', color: scoreColor(m.puntaje_total) }}>
+                      <span style={{ fontWeight: '800', fontSize: '1.05rem', color: m.nivel_color || scoreColor(m.puntaje_total) }}>
                         {m.puntaje_total ?? '—'}
                       </span>
+                    </td>
+                    <td style={{ padding: '1rem' }}>
+                      {m.nivel_final ? (
+                        <span style={{
+                          display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '2rem',
+                          fontSize: '0.7rem', fontWeight: '700',
+                          backgroundColor: m.nivel_color ? `${m.nivel_color}22` : 'var(--primary-light)',
+                          color: m.nivel_color || 'var(--primary)',
+                          border: `1px solid ${m.nivel_color ? m.nivel_color + '44' : 'var(--primary)44'}`
+                        }}>
+                          {m.nivel_final}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
                     </td>
                     <td style={{ padding: '1rem' }}>{statusBadge(m.estado)}</td>
                     <td style={{ padding: '1rem', textAlign: 'right' }}>
@@ -300,7 +315,11 @@ const HistorialMonitoreoPage = () => {
                 ))}
                 <div>
                   <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Puntaje Total</p>
-                  <p style={{ margin: '0.2rem 0 0', fontWeight: '900', fontSize: '1.4rem', color: scoreColor(selectedMonitoreo.puntaje_total) }}>{selectedMonitoreo.puntaje_total ?? '—'} pts</p>
+                  <p style={{ margin: '0.2rem 0 0', fontWeight: '900', fontSize: '1.4rem', color: selectedMonitoreo.nivel_color || scoreColor(selectedMonitoreo.puntaje_total) }}>{selectedMonitoreo.puntaje_total ?? '—'} pts</p>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Nivel</p>
+                  <p style={{ margin: '0.2rem 0 0', fontWeight: '700', fontSize: '0.95rem', color: selectedMonitoreo.nivel_color || 'var(--text-main)' }}>{selectedMonitoreo.nivel_final || 'Sin Nivel'}</p>
                 </div>
               </div>
 
