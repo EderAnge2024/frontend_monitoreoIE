@@ -3,7 +3,7 @@ import api from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import {
   Search, Eye, Calendar, Filter, ClipboardCheck,
-  ArrowLeft, ChevronUp, ChevronDown, BookOpen, X
+  ArrowLeft, ChevronUp, ChevronDown, BookOpen, X, Trash2
 } from 'lucide-react';
 
 const statusBadge = (estado) => {
@@ -82,6 +82,18 @@ const HistorialMonitoreoPage = () => {
       setSelected(r.data);
       setShowModal(true);
     } catch (err) { console.error(err); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este monitoreo? Esta acción borrará las respuestas y el puntaje permanentemente.')) return;
+    try {
+      await api.delete(`/monitoreos/${id}`);
+      // Volver a cargar la lista
+      fetchMonitoreos();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Error al eliminar el monitoreo');
+    }
   };
 
   const sorted = [...monitoreos].sort((a, b) => {
@@ -269,13 +281,29 @@ const HistorialMonitoreoPage = () => {
                     </td>
                     <td style={{ padding: '1rem' }}>{statusBadge(m.estado)}</td>
                     <td style={{ padding: '1rem', textAlign: 'right' }}>
-                      <button
-                        className="btn btn-outline"
-                        onClick={() => handleViewDetail(m.id_monitoreo)}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.8rem', fontSize: '0.78rem', fontWeight: '600' }}
-                      >
-                        <Eye size={13} /> Ver detalle
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn btn-outline"
+                          onClick={() => handleViewDetail(m.id_monitoreo)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.8rem', fontSize: '0.78rem', fontWeight: '600' }}
+                        >
+                          <Eye size={13} /> Ver detalle
+                        </button>
+                        {isAdmin && (
+                          <button
+                            className="btn btn-outline"
+                            onClick={() => handleDelete(m.id_monitoreo)}
+                            style={{ 
+                              display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.8rem', 
+                              fontSize: '0.78rem', fontWeight: '600', color: '#dc2626', borderColor: 'rgba(220,38,38,0.2)' 
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(220,38,38,0.05)'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
