@@ -115,7 +115,7 @@ const DashboardLayout = ({ children }) => {
           </button>
         </div>
 
-        <nav style={{ flex: 1, padding: '1rem' }}>
+        <nav style={{ flex: 1, padding: '1rem', overflowY: 'auto', overflowX: 'hidden' }}>
           {filteredMenu.map((item) => (
             <Link 
               key={item.path}

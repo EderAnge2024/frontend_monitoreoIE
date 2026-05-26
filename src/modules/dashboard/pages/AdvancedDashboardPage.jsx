@@ -5,18 +5,19 @@ import {
   LineChart, Line, Cell, PieChart, Pie, Legend
 } from 'recharts';
 import {
-  Users, Award, AlertTriangle, TrendingUp, Filter, FileText, Target, BookOpen
+  Users, Award, AlertTriangle, TrendingUp, Filter, FileText, Target, BookOpen, Activity
 } from 'lucide-react';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const KPICard = ({ title, value, icon, color }) => (
+const KPICard = ({ title, value, sub, icon, color }) => (
   <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
     <div style={{ width: '52px', height: '52px', borderRadius: '1rem', backgroundColor: color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
       {icon}
     </div>
     <div>
-      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '500', margin: 0 }}>{title}</p>
+      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: '500', margin: 0 }}>{title}</p>
       <p style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--text-main)', margin: 0, letterSpacing: '-0.5px' }}>{value}</p>
+      {sub && <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>{sub}</p>}
     </div>
   </div>
 );
@@ -60,9 +61,8 @@ const RankingTable = ({ data, emptyMsg = 'Sin datos' }) => (
   )
 );
 
-// Tab component
 const Tabs = ({ tabs, active, onChange }) => (
-  <div style={{ display: 'flex', gap: '0.25rem', borderBottom: '2px solid var(--border)', marginBottom: '0' }}>
+  <div style={{ display: 'flex', gap: '0.25rem', borderBottom: '2px solid var(--border)' }}>
     {tabs.map(t => (
       <button key={t.key} onClick={() => onChange(t.key)} style={{
         padding: '0.6rem 1rem', fontSize: '0.8rem', fontWeight: '700', border: 'none', cursor: 'pointer',
@@ -76,14 +76,20 @@ const Tabs = ({ tabs, active, onChange }) => (
   </div>
 );
 
+const RANKING_TABS = [
+  { key: 'general',    label: '📋 General' },
+  { key: 'primaria',   label: '🏫 Primaria' },
+  { key: 'secundaria', label: '🎓 Secundaria' },
+];
+
+const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const AdvancedDashboardPage = () => {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ id_institucion: '', id_periodo: '', id_docente: '' });
   const [filterData, setFilterData] = useState({ instituciones: [], periodos: [], docentes: [] });
-
-  // Tab states
   const [tabDocentes, setTabDocentes] = useState('general');
   const [tabTutores, setTabTutores]   = useState('general');
 
@@ -99,8 +105,9 @@ const AdvancedDashboardPage = () => {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const query = new URLSearchParams(filters).toString();
-      const res = await api.get(`/monitoreos/stats?${query}`);
+      // Only send non-empty filters
+      const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== ''));
+      const res = await api.get(`/monitoreos/stats?${new URLSearchParams(params)}`);
       setStats(res.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -109,18 +116,12 @@ const AdvancedDashboardPage = () => {
   useEffect(() => { fetchFilters(); }, []);
   useEffect(() => { fetchStats(); }, [filters]);
 
-  const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-
-  const docentesTabs = [
-    { key: 'general',    label: '📋 General' },
-    { key: 'primaria',   label: '🏫 Primaria' },
-    { key: 'secundaria', label: '🎓 Secundaria' },
-  ];
-  const tutoresTabs = [
-    { key: 'general',    label: '📋 General' },
-    { key: 'primaria',   label: '🏫 Primaria' },
-    { key: 'secundaria', label: '🎓 Secundaria' },
-  ];
+  // Informe general: distribución de niveles con porcentajes
+  const totalMonitoreos = Number(stats?.kpis?.total_monitoreos || 0);
+  const distribucionConPct = (stats?.distribucionNiveles || []).map(n => ({
+    ...n,
+    pct: totalMonitoreos > 0 ? ((n.cantidad / totalMonitoreos) * 100).toFixed(1) : '0.0'
+  }));
 
   const docentesData = {
     general:    stats?.rankingDocentes,
@@ -149,17 +150,17 @@ const AdvancedDashboardPage = () => {
         <div style={{ backgroundColor: 'var(--surface)', padding: '1rem', borderRadius: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', border: '1px solid var(--border)', alignItems: 'center' }}>
           <Filter size={15} color="var(--primary)" />
           <select className="input" style={{ width: '175px', height: '36px', fontSize: '0.8rem' }}
-            value={filters.id_institucion} onChange={e => setFilters({ ...filters, id_institucion: e.target.value })}>
+            value={filters.id_institucion} onChange={e => setFilters(f => ({ ...f, id_institucion: e.target.value }))}>
             <option value="">Todas las II.EE.</option>
             {filterData.instituciones.map(i => <option key={i.id_institucion} value={i.id_institucion}>{i.nombre}</option>)}
           </select>
           <select className="input" style={{ width: '150px', height: '36px', fontSize: '0.8rem' }}
-            value={filters.id_periodo} onChange={e => setFilters({ ...filters, id_periodo: e.target.value })}>
+            value={filters.id_periodo} onChange={e => setFilters(f => ({ ...f, id_periodo: e.target.value }))}>
             <option value="">Todos los periodos</option>
             {filterData.periodos.map(p => <option key={p.id_periodo} value={p.id_periodo}>{p.nombre}</option>)}
           </select>
           <select className="input" style={{ width: '175px', height: '36px', fontSize: '0.8rem' }}
-            value={filters.id_docente} onChange={e => setFilters({ ...filters, id_docente: e.target.value })}>
+            value={filters.id_docente} onChange={e => setFilters(f => ({ ...f, id_docente: e.target.value }))}>
             <option value="">Todos los docentes</option>
             {filterData.docentes.map(d => <option key={d.id_docente} value={d.id_docente}>{d.nombres} {d.apellidos}</option>)}
           </select>
@@ -172,19 +173,61 @@ const AdvancedDashboardPage = () => {
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-        <KPICard title="Promedio General"     value={stats?.kpis?.promedio_general || '0.00'} icon={<TrendingUp size={22} color="#2563eb" />} color="#dbeafe" />
-        <KPICard title="Docentes Evaluados"   value={stats?.kpis?.total_docentes || '0'}      icon={<Users size={22} color="#10b981" />}      color="#dcfce7" />
-        <KPICard title="Total Monitoreos"     value={stats?.kpis?.total_monitoreos || '0'}    icon={<FileText size={22} color="#8b5cf6" />}   color="#f3e8ff" />
-        <KPICard title="Alertas Desempeño"    value={stats?.kpis?.alertas_bajo_desempeno || '0'} icon={<AlertTriangle size={22} color="#ef4444" />} color="#fee2e2" />
+        <KPICard title="Promedio General"  value={stats?.kpis?.promedio_general || '0.00'} icon={<TrendingUp size={22} color="#2563eb" />} color="#dbeafe" />
+        <KPICard title="Docentes Evaluados" value={stats?.kpis?.total_docentes || '0'}     icon={<Users size={22} color="#10b981" />}      color="#dcfce7" />
+        <KPICard title="Total Monitoreos"  value={stats?.kpis?.total_monitoreos || '0'}    icon={<FileText size={22} color="#8b5cf6" />}   color="#f3e8ff" />
+        <KPICard title="Alertas Desempeño" value={stats?.kpis?.alertas_bajo_desempeno || '0'} icon={<AlertTriangle size={22} color="#ef4444" />} color="#fee2e2" />
       </div>
 
-      {/* Gráficas fila 1 */}
+      {/* ── INFORME GENERAL ── */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem', borderLeft: '4px solid var(--primary)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+          <Activity size={18} color="var(--primary)" />
+          <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: 0 }}>Informe General</h3>
+          {(filters.id_institucion || filters.id_periodo || filters.id_docente) && (
+            <span style={{ fontSize: '0.72rem', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: '600' }}>
+              Filtrado
+            </span>
+          )}
+        </div>
+
+        {distribucionConPct.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>Sin monitoreos completados en el período seleccionado.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {distribucionConPct.map((n, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: n.color || COLORS[i % COLORS.length], flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: '600', width: '130px', flexShrink: 0 }}>{n.nivel_final}</span>
+                <div style={{ flex: 1, height: '10px', backgroundColor: 'var(--border)', borderRadius: '5px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${n.pct}%`, backgroundColor: n.color || COLORS[i % COLORS.length], borderRadius: '5px', transition: 'width 0.6s ease' }} />
+                </div>
+                <span style={{ fontSize: '0.82rem', fontWeight: '700', color: n.color || 'var(--text-main)', width: '48px', textAlign: 'right' }}>{n.pct}%</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', width: '60px', textAlign: 'right' }}>{n.cantidad} monit.</span>
+              </div>
+            ))}
+            <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Total evaluados: <strong style={{ color: 'var(--text-main)' }}>{totalMonitoreos}</strong>
+              </span>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Promedio general: <strong style={{ color: 'var(--primary)' }}>{stats?.kpis?.promedio_general || '—'} pts</strong>
+              </span>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Docentes únicos: <strong style={{ color: 'var(--text-main)' }}>{stats?.kpis?.total_docentes || '—'}</strong>
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Gráficas */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
         <div className="card" style={{ padding: '1.5rem' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <TrendingUp size={17} color="var(--primary)" /> Evolución del Desempeño
           </h3>
-          <div style={{ height: '260px' }}>
+          <div style={{ height: '240px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={stats?.evolucion || []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
@@ -202,33 +245,33 @@ const AdvancedDashboardPage = () => {
           <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Target size={17} color="var(--primary)" /> Distribución por Nivel
           </h3>
-          <div style={{ height: '260px' }}>
+          <div style={{ height: '240px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={stats?.distribucionNiveles || []} cx="50%" cy="45%" outerRadius={80} dataKey="cantidad" nameKey="nivel_final" paddingAngle={4}>
+                <Pie data={stats?.distribucionNiveles || []} cx="50%" cy="45%" outerRadius={75} dataKey="cantidad" nameKey="nivel_final" paddingAngle={4}>
                   {(stats?.distribucionNiveles || []).map((e, i) => <Cell key={i} fill={e.color || COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip contentStyle={{ fontSize: '0.75rem' }} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '0.7rem' }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '0.68rem' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      {/* Distribución por institución */}
+      {/* Por institución */}
       <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <BookOpen size={17} color="var(--primary)" /> Promedio por Institución
         </h3>
-        <div style={{ height: '220px' }}>
+        <div style={{ height: '200px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={stats?.porInstitucion || []} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
               <XAxis type="number" domain={[0, 100]} hide />
               <YAxis dataKey="nombre" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} width={110} />
               <Tooltip contentStyle={{ fontSize: '0.75rem' }} />
-              <Bar dataKey="promedio" radius={[0, 4, 4, 0]} barSize={16}>
+              <Bar dataKey="promedio" radius={[0, 4, 4, 0]} barSize={14}>
                 {(stats?.porInstitucion || []).map((e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Bar>
             </BarChart>
@@ -236,31 +279,28 @@ const AdvancedDashboardPage = () => {
         </div>
       </div>
 
-      {/* Rankings con tabs */}
+      {/* Rankings */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-
-        {/* Ranking Docentes */}
         <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
           <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Award size={18} color="var(--primary)" />
             <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: 0 }}>🏆 Ranking Docentes</h3>
           </div>
           <div style={{ padding: '0 1.5rem', paddingTop: '1rem' }}>
-            <Tabs tabs={docentesTabs} active={tabDocentes} onChange={setTabDocentes} />
+            <Tabs tabs={RANKING_TABS} active={tabDocentes} onChange={setTabDocentes} />
           </div>
           <div style={{ overflowX: 'auto' }}>
             <RankingTable data={docentesData[tabDocentes]} emptyMsg="Sin docentes en este nivel" />
           </div>
         </div>
 
-        {/* Ranking Tutores */}
         <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
           <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Users size={18} color="#8b5cf6" />
             <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: 0 }}>🌟 Ranking Tutores</h3>
           </div>
           <div style={{ padding: '0 1.5rem', paddingTop: '1rem' }}>
-            <Tabs tabs={tutoresTabs} active={tabTutores} onChange={setTabTutores} />
+            <Tabs tabs={RANKING_TABS} active={tabTutores} onChange={setTabTutores} />
           </div>
           <div style={{ overflowX: 'auto' }}>
             <RankingTable data={tutoresData[tabTutores]} emptyMsg="Sin tutores en este nivel" />
@@ -268,13 +308,13 @@ const AdvancedDashboardPage = () => {
         </div>
       </div>
 
-      {/* Historial docente seleccionado */}
+      {/* Historial docente */}
       {filters.id_docente && stats?.historialDocente?.length > 0 && (
         <div className="card" style={{ padding: '1.5rem' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileText size={17} color="var(--primary)" /> Historial del Docente
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
             {stats.historialDocente.map((h, i) => (
               <div key={i} style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.75rem', borderLeft: `4px solid ${h.nivel_color || 'var(--primary)'}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
