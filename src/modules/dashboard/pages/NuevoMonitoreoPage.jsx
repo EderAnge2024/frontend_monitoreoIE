@@ -113,7 +113,7 @@ const NuevoMonitoreoPage = () => {
   // Multiple selection: toggle option in/out of selected set, sum their values
   const handleMultiAnswerChange = (qId, option, opciones) => {
     const current = respuestas[qId]?.selected_opciones || [];
-    const exists = current.find(o => o.id_opcion === option.id_opcion);
+    const exists = current.find(o => String(o.id_opcion) === String(option.id_opcion));
     const updated = exists
       ? current.filter(o => o.id_opcion !== option.id_opcion)
       : [...current, { id_opcion: option.id_opcion, valor: parseFloat(option.valor) }];
@@ -448,7 +448,7 @@ const NuevoMonitoreoPage = () => {
                         {q.tipo_respuesta === 'seleccion_multiple' ? (
                           // Checkboxes for multiple selection
                           q.opciones.map(opt => {
-                            const isChecked = (respuestas[q.id_pregunta]?.selected_opciones || []).some(o => o.id_opcion === opt.id_opcion);
+                            const isChecked = (respuestas[q.id_pregunta]?.selected_opciones || []).some(o => String(o.id_opcion) === String(opt.id_opcion));
                             return (
                               <label key={opt.id_opcion} style={{
                                 display: 'flex', alignItems: 'center', gap: '0.5rem',
