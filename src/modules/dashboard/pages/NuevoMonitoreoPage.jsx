@@ -110,6 +110,26 @@ const NuevoMonitoreoPage = () => {
     });
   };
 
+  // Multiple selection: toggle option in/out of selected set, sum their values
+  const handleMultiAnswerChange = (qId, option, opciones) => {
+    const current = respuestas[qId]?.selected_opciones || [];
+    const exists = current.find(o => o.id_opcion === option.id_opcion);
+    const updated = exists
+      ? current.filter(o => o.id_opcion !== option.id_opcion)
+      : [...current, { id_opcion: option.id_opcion, valor: parseFloat(option.valor) }];
+    const totalPuntaje = updated.reduce((sum, o) => sum + o.valor, 0);
+    setRespuestas({
+      ...respuestas,
+      [qId]: {
+        ...respuestas[qId],
+        selected_opciones: updated,
+        // For multi-select we store the first selected id_opcion for compat, puntaje is the sum
+        id_opcion: updated.length > 0 ? updated[0].id_opcion : null,
+        puntaje: totalPuntaje
+      }
+    });
+  };
+
   const handleCommentChange = (qId, text) => {
     setRespuestas({
       ...respuestas,
@@ -128,11 +148,11 @@ const NuevoMonitoreoPage = () => {
       const monRes = await api.post('/monitoreos', formData);
       const id_monitoreo = monRes.data.id_monitoreo;
 
-      // 2. Save Answers
+      // 2. Save Answers — exclude unanswered questions (no option selected and puntaje is 0 with no manual input)
       const answersArray = Object.keys(respuestas).map(qId => ({
-        id_pregunta: qId,
+        id_pregunta: parseInt(qId),
         ...respuestas[qId]
-      })).filter(a => a.id_opcion || (a.puntaje !== undefined && a.puntaje !== null)); // Ensure manual scores are included
+      })).filter(a => a.id_opcion || (a.puntaje > 0));
 
       await api.post('/monitoreos/respuestas', {
         id_monitoreo,
@@ -425,28 +445,49 @@ const NuevoMonitoreoPage = () => {
                     
                     {q.opciones.length > 0 ? (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-                        {q.opciones.map(opt => (
-                          <label key={opt.id_opcion} style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '0.5rem', 
-                            padding: '0.75rem', 
-                            border: '1px solid var(--border)',
-                            borderRadius: '0.5rem',
-                            cursor: 'pointer',
-                            backgroundColor: respuestas[q.id_pregunta]?.id_opcion === opt.id_opcion ? 'var(--primary-light)' : 'var(--surface)',
-                            borderColor: respuestas[q.id_pregunta]?.id_opcion === opt.id_opcion ? 'var(--primary)' : 'var(--border)',
-                            transition: 'all 0.2s'
-                          }}>
-                            <input 
-                              type="radio" 
-                              name={`q_${q.id_pregunta}`} 
-                              checked={respuestas[q.id_pregunta]?.id_opcion === opt.id_opcion}
-                              onChange={() => handleAnswerChange(q.id_pregunta, opt)}
-                            />
-                            <span style={{ fontSize: '0.875rem' }}>{opt.nombre_opcion} ({opt.valor})</span>
-                          </label>
-                        ))}
+                        {q.tipo_respuesta === 'seleccion_multiple' ? (
+                          // Checkboxes for multiple selection
+                          q.opciones.map(opt => {
+                            const isChecked = (respuestas[q.id_pregunta]?.selected_opciones || []).some(o => o.id_opcion === opt.id_opcion);
+                            return (
+                              <label key={opt.id_opcion} style={{
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
+                                cursor: 'pointer',
+                                backgroundColor: isChecked ? 'var(--primary-light)' : 'var(--surface)',
+                                borderColor: isChecked ? 'var(--primary)' : 'var(--border)',
+                                transition: 'all 0.2s'
+                              }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => handleMultiAnswerChange(q.id_pregunta, opt, q.opciones)}
+                                />
+                                <span style={{ fontSize: '0.875rem' }}>{opt.nombre_opcion} ({opt.valor})</span>
+                              </label>
+                            );
+                          })
+                        ) : (
+                          // Radio buttons for single selection
+                          q.opciones.map(opt => (
+                            <label key={opt.id_opcion} style={{
+                              display: 'flex', alignItems: 'center', gap: '0.5rem',
+                              padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
+                              cursor: 'pointer',
+                              backgroundColor: respuestas[q.id_pregunta]?.id_opcion === opt.id_opcion ? 'var(--primary-light)' : 'var(--surface)',
+                              borderColor: respuestas[q.id_pregunta]?.id_opcion === opt.id_opcion ? 'var(--primary)' : 'var(--border)',
+                              transition: 'all 0.2s'
+                            }}>
+                              <input
+                                type="radio"
+                                name={`q_${q.id_pregunta}`}
+                                checked={respuestas[q.id_pregunta]?.id_opcion === opt.id_opcion}
+                                onChange={() => handleAnswerChange(q.id_pregunta, opt)}
+                              />
+                              <span style={{ fontSize: '0.875rem' }}>{opt.nombre_opcion} ({opt.valor})</span>
+                            </label>
+                          ))
+                        )}
                       </div>
                     ) : (
                       <div style={{ backgroundColor: 'var(--background)', padding: '1rem', borderRadius: '0.5rem', border: '1px dashed var(--border)' }}>
