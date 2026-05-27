@@ -111,22 +111,23 @@ const NuevoMonitoreoPage = () => {
   };
 
   // Multiple selection: toggle option in/out of selected set, sum their values
-  const handleMultiAnswerChange = (qId, option, opciones) => {
-    const current = respuestas[qId]?.selected_opciones || [];
-    const exists = current.find(o => String(o.id_opcion) === String(option.id_opcion));
-    const updated = exists
-      ? current.filter(o => o.id_opcion !== option.id_opcion)
-      : [...current, { id_opcion: option.id_opcion, valor: parseFloat(option.valor) }];
-    const totalPuntaje = updated.reduce((sum, o) => sum + o.valor, 0);
-    setRespuestas({
-      ...respuestas,
-      [qId]: {
-        ...respuestas[qId],
-        selected_opciones: updated,
-        // For multi-select we store the first selected id_opcion for compat, puntaje is the sum
-        id_opcion: updated.length > 0 ? updated[0].id_opcion : null,
-        puntaje: totalPuntaje
-      }
+  const handleMultiAnswerChange = (qId, option) => {
+    setRespuestas(prev => {
+      const current = prev[qId]?.selected_opciones || [];
+      const exists = current.find(o => String(o.id_opcion) === String(option.id_opcion));
+      const updated = exists
+        ? current.filter(o => String(o.id_opcion) !== String(option.id_opcion))
+        : [...current, { id_opcion: option.id_opcion, valor: parseFloat(option.valor) }];
+      const totalPuntaje = updated.reduce((sum, o) => sum + o.valor, 0);
+      return {
+        ...prev,
+        [qId]: {
+          ...prev[qId],
+          selected_opciones: updated,
+          id_opcion: updated.length > 0 ? updated[0].id_opcion : null,
+          puntaje: totalPuntaje
+        }
+      };
     });
   };
 
@@ -461,7 +462,7 @@ const NuevoMonitoreoPage = () => {
                                 <input
                                   type="checkbox"
                                   checked={isChecked}
-                                  onChange={() => handleMultiAnswerChange(q.id_pregunta, opt, q.opciones)}
+                                  onChange={() => handleMultiAnswerChange(q.id_pregunta, opt)}
                                 />
                                 <span style={{ fontSize: '0.875rem' }}>{opt.nombre_opcion} ({opt.valor})</span>
                               </label>
