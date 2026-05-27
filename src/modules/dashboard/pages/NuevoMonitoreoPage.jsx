@@ -451,14 +451,16 @@ const NuevoMonitoreoPage = () => {
                           q.opciones.map(opt => {
                             const isChecked = (respuestas[q.id_pregunta]?.selected_opciones || []).some(o => String(o.id_opcion) === String(opt.id_opcion));
                             return (
-                              <label key={opt.id_opcion} style={{
-                                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
-                                cursor: 'pointer',
-                                backgroundColor: isChecked ? 'var(--primary-light)' : 'var(--surface)',
-                                borderColor: isChecked ? 'var(--primary)' : 'var(--border)',
-                                transition: 'all 0.2s'
-                              }}>
+                              <label key={opt.id_opcion}
+                                onClick={e => e.preventDefault()}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                  padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
+                                  cursor: 'pointer',
+                                  backgroundColor: isChecked ? 'var(--primary-light)' : 'var(--surface)',
+                                  borderColor: isChecked ? 'var(--primary)' : 'var(--border)',
+                                  transition: 'all 0.2s'
+                                }}>
                                 <input
                                   type="checkbox"
                                   checked={isChecked}
