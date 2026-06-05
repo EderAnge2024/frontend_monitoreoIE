@@ -5,6 +5,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
 import { TrendingUp, ClipboardCheck, Users, AlertTriangle, Target, Award, Filter, X } from 'lucide-react';
+import RankingPanel from '../components/RankingPanel';
 
 const NivelBadge = ({ nombre, color }) => (
   <span style={{
@@ -288,32 +289,34 @@ const ReportesPage = () => {
 
       {/* Rankings */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-          <div style={{ padding: '1.1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <Award size={17} color="var(--primary)" />
-            <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: 0 }}>Ranking Docentes</h3>
-            {filters.nivel_desempeno && <NivelBadge nombre={filters.nivel_desempeno} />}
-          </div>
-          <div style={{ padding: '0.75rem 1.5rem 0' }}>
-            <Tabs tabs={RANKING_TABS} active={tabDocentes} onChange={setTabDocentes} />
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <RankingTable data={docentesData[tabDocentes]} emptyMsg="Sin docentes con estos filtros" />
-          </div>
-        </div>
-        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-          <div style={{ padding: '1.1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <Users size={17} color="#8b5cf6" />
-            <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: 0 }}>Ranking Tutores</h3>
-            {filters.nivel_desempeno && <NivelBadge nombre={filters.nivel_desempeno} />}
-          </div>
-          <div style={{ padding: '0.75rem 1.5rem 0' }}>
-            <Tabs tabs={RANKING_TABS} active={tabTutores} onChange={setTabTutores} />
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <RankingTable data={tutoresData[tabTutores]} emptyMsg="Sin tutores con estos filtros" />
-          </div>
-        </div>
+        <RankingPanel
+          title="Ranking Docentes"
+          icon={<Award size={17} />}
+          accentColor="var(--primary)"
+          dataMap={docentesData}
+          fichas={filterData.fichas}
+          badge={filters.nivel_desempeno ? (
+            <span style={{
+              fontSize: '0.7rem', fontWeight: '700', padding: '0.18rem 0.55rem', borderRadius: '2rem',
+              backgroundColor: 'var(--primary-light)', color: 'var(--primary)',
+              border: '1px solid var(--primary)44'
+            }}>{filters.nivel_desempeno}</span>
+          ) : null}
+        />
+        <RankingPanel
+          title="Ranking Tutores"
+          icon={<Users size={17} />}
+          accentColor="#8b5cf6"
+          dataMap={tutoresData}
+          fichas={filterData.fichas}
+          badge={filters.nivel_desempeno ? (
+            <span style={{
+              fontSize: '0.7rem', fontWeight: '700', padding: '0.18rem 0.55rem', borderRadius: '2rem',
+              backgroundColor: '#f3e8ff', color: '#8b5cf6',
+              border: '1px solid #8b5cf644'
+            }}>{filters.nivel_desempeno}</span>
+          ) : null}
+        />
       </div>
 
       {/* Ranking Acumulado */}

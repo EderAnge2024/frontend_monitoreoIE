@@ -7,6 +7,7 @@ import {
 import {
   Users, Award, AlertTriangle, TrendingUp, Filter, FileText, Target, BookOpen, Activity
 } from 'lucide-react';
+import RankingPanel from '../components/RankingPanel';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const KPICard = ({ title, value, sub, icon, color }) => (
@@ -89,16 +90,14 @@ const AdvancedDashboardPage = () => {
   const [stats, setStats]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ id_institucion: '', id_periodo: '', id_docente: '' });
-  const [filterData, setFilterData] = useState({ instituciones: [], periodos: [], docentes: [] });
+  const [filterData, setFilterData] = useState({ instituciones: [], periodos: [], docentes: [], fichas: [] });
   const [tabDocentes, setTabDocentes] = useState('general');
-  const [tabTutores, setTabTutores]   = useState('general');
-
-  const fetchFilters = async () => {
+  const [tabTutores, setTabTutores]   = useState('general');  const fetchFilters = async () => {
     try {
-      const [inst, per, doc] = await Promise.all([
-        api.get('/instituciones'), api.get('/periodos'), api.get('/docentes')
+      const [inst, per, doc, fic] = await Promise.all([
+        api.get('/instituciones'), api.get('/periodos'), api.get('/docentes'), api.get('/fichas')
       ]);
-      setFilterData({ instituciones: inst.data, periodos: per.data, docentes: doc.data });
+      setFilterData({ instituciones: inst.data, periodos: per.data, docentes: doc.data, fichas: fic.data });
     } catch (err) { console.error(err); }
   };
 
@@ -281,31 +280,20 @@ const AdvancedDashboardPage = () => {
 
       {/* Rankings */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Award size={18} color="var(--primary)" />
-            <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: 0 }}>🏆 Ranking Docentes</h3>
-          </div>
-          <div style={{ padding: '0 1.5rem', paddingTop: '1rem' }}>
-            <Tabs tabs={RANKING_TABS} active={tabDocentes} onChange={setTabDocentes} />
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <RankingTable data={docentesData[tabDocentes]} emptyMsg="Sin docentes en este nivel" />
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Users size={18} color="#8b5cf6" />
-            <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: 0 }}>🌟 Ranking Tutores</h3>
-          </div>
-          <div style={{ padding: '0 1.5rem', paddingTop: '1rem' }}>
-            <Tabs tabs={RANKING_TABS} active={tabTutores} onChange={setTabTutores} />
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <RankingTable data={tutoresData[tabTutores]} emptyMsg="Sin tutores en este nivel" />
-          </div>
-        </div>
+        <RankingPanel
+          title="🏆 Ranking Docentes"
+          icon={<Award size={18} />}
+          accentColor="var(--primary)"
+          dataMap={docentesData}
+          fichas={filterData.fichas}
+        />
+        <RankingPanel
+          title="🌟 Ranking Tutores"
+          icon={<Users size={18} />}
+          accentColor="#8b5cf6"
+          dataMap={tutoresData}
+          fichas={filterData.fichas}
+        />
       </div>
 
       {/* Historial docente */}
