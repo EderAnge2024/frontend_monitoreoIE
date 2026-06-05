@@ -457,21 +457,70 @@ const FichasConfigPage = () => {
 
       <Modal isOpen={isOptionModalOpen} onClose={() => setIsOptionModalOpen(false)} title={editingItem ? "Editar Opción" : "Nueva Opción de Respuesta"}>
         <form onSubmit={handleOptionSubmit}>
+
+          {/* Preset selector */}
+          {!editingItem && (
+            <div className="form-group">
+              <label className="label">Tipo de Opción</label>
+              <select
+                className="input"
+                defaultValue=""
+                onChange={e => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  const presets = {
+                    'I':  { nombre_opcion: 'NIVEL I',  valor: 1 },
+                    'II': { nombre_opcion: 'NIVEL II', valor: 2 },
+                    'III':{ nombre_opcion: 'NIVEL III',valor: 3 },
+                    'IV': { nombre_opcion: 'NIVEL IV', valor: 4 },
+                    'SI': { nombre_opcion: 'SI',       valor: 0 },
+                    'NO': { nombre_opcion: 'NO',       valor: 0 },
+                  };
+                  if (presets[val]) setOptionForm(f => ({ ...f, ...presets[val] }));
+                }}
+              >
+                <option value="">— Seleccionar tipo —</option>
+                <optgroup label="Niveles de desempeño">
+                  <option value="I">Nivel I (1 punto)</option>
+                  <option value="II">Nivel II (2 puntos)</option>
+                  <option value="III">Nivel III (3 puntos)</option>
+                  <option value="IV">Nivel IV (4 puntos)</option>
+                </optgroup>
+                <optgroup label="Sí / No (0 puntos — solo visible)">
+                  <option value="SI">SÍ</option>
+                  <option value="NO">NO</option>
+                </optgroup>
+              </select>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0.35rem 0 0' }}>
+                Seleccionar rellena automáticamente los campos. Puedes editarlos si lo necesitas.
+              </p>
+            </div>
+          )}
+
           <div className="form-group">
             <label className="label">Texto de la Opción</label>
-            <input type="text" className="input" value={optionForm.nombre_opcion} onChange={e => setOptionForm({...optionForm, nombre_opcion: e.target.value})} required placeholder="Ej: Siempre, A veces, Nunca..." />
+            <input type="text" className="input" value={optionForm.nombre_opcion}
+              onChange={e => setOptionForm({...optionForm, nombre_opcion: e.target.value})}
+              required placeholder="Ej: NIVEL I, NIVEL II, SI, NO..." />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="label">Valor (Puntaje)</label>
-              <input type="number" step="0.01" className="input" value={optionForm.valor} onChange={e => setOptionForm({...optionForm, valor: e.target.value})} required />
+              <input type="number" step="0.01" min="0" className="input" value={optionForm.valor}
+                onChange={e => setOptionForm({...optionForm, valor: e.target.value})} required />
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0.3rem 0 0' }}>
+                SI / NO deben ser 0 para no sumar puntos.
+              </p>
             </div>
             <div className="form-group">
               <label className="label">Orden</label>
-              <input type="number" className="input" value={optionForm.orden} onChange={e => setOptionForm({...optionForm, orden: e.target.value})} />
+              <input type="number" className="input" value={optionForm.orden}
+                onChange={e => setOptionForm({...optionForm, orden: e.target.value})} />
             </div>
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>{editingItem ? 'Actualizar' : 'Añadir'} Opción</button>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+            {editingItem ? 'Actualizar' : 'Añadir'} Opción
+          </button>
         </form>
       </Modal>
     </div>
