@@ -20,7 +20,8 @@ import {
   Sun,
   Moon,
   Target,
-  FolderOpen
+  FolderOpen,
+  TrendingUp
 } from 'lucide-react';
 
 
@@ -81,6 +82,7 @@ const DashboardLayout = ({ children }) => {
     { name: 'Trámites / Solicitudes', icon: <FileText size={20} />, path: '/solicitudes', roles: ['administrador', 'director', 'docente'] },
     { name: 'Gestión Documental', icon: <FolderOpen size={20} />, path: '/gestion-documental', roles: ['administrador', 'director', 'docente'] },
     { name: 'Reportes y Estadísticas', icon: <BarChart3 size={20} />, path: '/reportes', roles: ['administrador', 'director', 'especialista'] },
+    { name: 'Seguimiento Docente', icon: <TrendingUp size={20} />, path: '/seguimiento', roles: ['administrador', 'director', 'especialista'] },
   ];
 
 

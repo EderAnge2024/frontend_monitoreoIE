@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
-import { TrendingUp, ClipboardCheck, Users, AlertTriangle, Target, Award, Filter, X } from 'lucide-react';
+import { TrendingUp, ClipboardCheck, Users, AlertTriangle, Award, Filter, X, Download } from 'lucide-react';
 import RankingPanel from '../components/RankingPanel';
 
 const NivelBadge = ({ nombre, color }) => (
@@ -30,55 +30,7 @@ const StatCard = ({ title, value, icon, accent }) => (
   </div>
 );
 
-const Tabs = ({ tabs, active, onChange }) => (
-  <div style={{ display: 'flex', gap: '0.25rem', borderBottom: '2px solid var(--border)' }}>
-    {tabs.map(t => (
-      <button key={t.key} onClick={() => onChange(t.key)} style={{
-        padding: '0.55rem 1rem', fontSize: '0.78rem', fontWeight: '700', border: 'none', cursor: 'pointer',
-        borderBottom: active === t.key ? '2px solid var(--primary)' : '2px solid transparent',
-        marginBottom: '-2px', borderRadius: '0.4rem 0.4rem 0 0',
-        backgroundColor: active === t.key ? 'var(--primary-light)' : 'transparent',
-        color: active === t.key ? 'var(--primary)' : 'var(--text-muted)',
-        transition: 'all 0.15s'
-      }}>{t.label}</button>
-    ))}
-  </div>
-);
-
-const RankingTable = ({ data, emptyMsg = 'Sin datos' }) => (
-  data && data.length > 0 ? (
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-      <thead>
-        <tr style={{ backgroundColor: 'var(--background)' }}>
-          {['#', 'Docente', 'I.E.', 'Visitas', 'Prom.', 'Nivel'].map((h, i) => (
-            <th key={i} style={{ padding: '0.7rem 0.9rem', fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: '700', textAlign: i >= 3 ? 'center' : 'left', whiteSpace: 'nowrap' }}>{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((d, i) => (
-          <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-            <td style={{ padding: '0.65rem 0.9rem', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)' }}>{i + 1}</td>
-            <td style={{ padding: '0.65rem 0.9rem', fontSize: '0.82rem', fontWeight: '600' }}>{d.nombre_docente}</td>
-            <td style={{ padding: '0.65rem 0.9rem', fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.institucion}</td>
-            <td style={{ padding: '0.65rem 0.9rem', fontSize: '0.8rem', textAlign: 'center' }}>{d.visitas_realizadas}</td>
-            <td style={{ padding: '0.65rem 0.9rem', fontWeight: '800', color: d.nivel_color || 'var(--primary)', fontSize: '0.9rem', textAlign: 'center' }}>{d.promedio}</td>
-            <td style={{ padding: '0.65rem 0.9rem', textAlign: 'center' }}><NivelBadge nombre={d.nivel_final} color={d.nivel_color} /></td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  ) : (
-    <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>{emptyMsg}</div>
-  )
-);
-
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-const RANKING_TABS = [
-  { key: 'general',    label: 'General' },
-  { key: 'primaria',   label: 'Primaria' },
-  { key: 'secundaria', label: 'Secundaria' },
-];
 const EMPTY_FILTERS = { id_institucion: '', id_periodo: '', id_ficha: '', id_docente: '', nivel_desempeno: '' };
 
 const ReportesPage = () => {
@@ -86,8 +38,7 @@ const ReportesPage = () => {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [filterData, setFilterData] = useState({ instituciones: [], periodos: [], fichas: [], docentes: [] });
-  const [tabDocentes, setTabDocentes] = useState('general');
-  const [tabTutores, setTabTutores]   = useState('general');
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -119,6 +70,31 @@ const ReportesPage = () => {
   const setFilter = (key, value) => setFilters(f => ({ ...f, [key]: value }));
   const clearFilters = () => setFilters(EMPTY_FILTERS);
   const activeFilterCount = Object.values(filters).filter(v => v !== '').length;
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const { nivel_desempeno, ...backendFilters } = filters;
+      const params = Object.fromEntries(Object.entries(backendFilters).filter(([, v]) => v !== ''));
+      const response = await api.get(`/monitoreos/export/excel?${new URLSearchParams(params)}`, {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Reporte_Monitoreos_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error al exportar:', err);
+      alert('Error al generar el archivo Excel');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const nivelesDisponibles = useMemo(() => {
     const names = new Set();
@@ -154,11 +130,29 @@ const ReportesPage = () => {
   return (
     <div className="fade-in" style={{ paddingBottom: '3rem' }}>
 
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.875rem', fontWeight: '800', color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-          Reportes y Estadísticas
-        </h1>
-        <p style={{ color: 'var(--text-muted)', margin: 0 }}>Cada filtro actúa de forma independiente — sin filtro activo se muestran todos los datos.</p>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.875rem', fontWeight: '800', color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+            Reportes y Estadísticas
+          </h1>
+          <p style={{ color: 'var(--text-muted)', margin: 0 }}>Cada filtro actúa de forma independiente — sin filtro activo se muestran todos los datos.</p>
+        </div>
+        <button 
+          className="btn btn-primary" 
+          onClick={handleExportExcel}
+          disabled={exporting}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem',
+            whiteSpace: 'nowrap',
+            minWidth: '140px',
+            justifyContent: 'center'
+          }}
+        >
+          <Download size={16} />
+          {exporting ? 'Generando...' : 'Exportar Excel'}
+        </button>
       </div>
 
       {/* Panel de filtros */}

@@ -1,0 +1,335 @@
+import { useState, useEffect } from 'react';
+import api from '../../../services/api';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine
+} from 'recharts';
+import { TrendingUp, TrendingDown, Minus, Download, Filter, X, User } from 'lucide-react';
+
+const TendenciaBadge = ({ visitas }) => {
+  if (visitas.length < 2) return <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>;
+  const diff = visitas[visitas.length - 1].puntaje - visitas[0].puntaje;
+  if (diff > 0) return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#10b981', fontWeight: '700', fontSize: '0.8rem' }}>
+      <TrendingUp size={14} /> Mejora (+{diff.toFixed(1)})
+    </span>
+  );
+  if (diff < 0) return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#ef4444', fontWeight: '700', fontSize: '0.8rem' }}>
+      <TrendingDown size={14} /> Baja ({diff.toFixed(1)})
+    </span>
+  );
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#f59e0b', fontWeight: '700', fontSize: '0.8rem' }}>
+      <Minus size={14} /> Estable
+    </span>
+  );
+};
+
+const NivelBadge = ({ nombre, color }) => (
+  <span style={{
+    display: 'inline-block', padding: '0.15rem 0.55rem', borderRadius: '2rem',
+    fontSize: '0.68rem', fontWeight: '700',
+    backgroundColor: color ? `${color}22` : '#eff6ff',
+    color: color || 'var(--primary)',
+    border: `1px solid ${color ? color + '44' : 'var(--primary)44'}`,
+  }}>{nombre || 'Sin nivel'}</span>
+);
+
+const EMPTY = { id_institucion: '', id_periodo: '', id_ficha: '' };
+
+const SeguimientoPage = () => {
+  const [docentes, setDocentes]     = useState([]);
+  const [filterData, setFilterData] = useState({ instituciones: [], periodos: [], fichas: [] });
+  const [filters, setFilters]       = useState(EMPTY);
+  const [loading, setLoading]       = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDocente, setSelectedDocente] = useState(null);
+  const [niveles, setNiveles]       = useState([]);
+
+  // Load filter options
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [inst, per, fic, niv] = await Promise.all([
+          api.get('/instituciones'), api.get('/periodos'),
+          api.get('/fichas'), api.get('/niveles'),
+        ]);
+        setFilterData({ instituciones: inst.data, periodos: per.data, fichas: fic.data });
+        setNiveles(niv.data);
+      } catch (err) { console.error(err); }
+    };
+    load();
+  }, []);
+
+  // Load seguimiento data
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setSelectedDocente(null);
+      try {
+        const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== ''));
+        const res = await api.get(`/monitoreos/seguimiento?${new URLSearchParams(params)}`);
+        setDocentes(res.data);
+      } catch (err) { console.error(err); }
+      finally { setLoading(false); }
+    };
+    fetchData();
+  }, [filters]);
+
+  const setFilter = (key, val) => setFilters(f => ({ ...f, [key]: val }));
+  const clearFilters = () => setFilters(EMPTY);
+  const activeCount = Object.values(filters).filter(v => v !== '').length;
+
+  const handleExcel = async () => {
+    setDownloading(true);
+    try {
+      const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== ''));
+      const res = await api.get(`/monitoreos/export/excel?${new URLSearchParams(params)}`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Seguimiento_Docentes_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error al exportar:', err);
+      alert('Error al generar el archivo Excel. Intente nuevamente.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const filtered = docentes.filter(d => {
+    if (!searchTerm) return true;
+    return `${d.nombre_docente} ${d.institucion}`.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  // Niveles reference lines for chart
+  const nivelLines = niveles.map(n => ({
+    y: parseFloat(n.puntaje_minimo),
+    label: n.nombre,
+    color: n.color || '#94a3b8'
+  }));
+
+  return (
+    <div className="fade-in" style={{ paddingBottom: '3rem' }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.875rem', fontWeight: '800', color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+            Seguimiento de Progreso Docente
+          </h1>
+          <p style={{ color: 'var(--text-muted)', margin: 0 }}>
+            Evolución del desempeño por monitoreo. Exporta a Excel para un informe completo.
+          </p>
+        </div>
+        <button
+          className="btn btn-primary"
+          onClick={handleExcel}
+          disabled={downloading}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+        >
+          <Download size={17} />
+          {downloading ? 'Generando...' : 'Exportar Excel'}
+        </button>
+      </div>
+
+      {/* Filtros */}
+      <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+          <Filter size={14} color="var(--primary)" />
+          <span style={{ fontSize: '0.875rem', fontWeight: '700' }}>Filtros</span>
+          {activeCount > 0 && (
+            <span style={{ fontSize: '0.7rem', backgroundColor: 'var(--primary)', color: 'white', padding: '0.1rem 0.45rem', borderRadius: '1rem', fontWeight: '700' }}>
+              {activeCount}
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '0.75rem', alignItems: 'end' }}>
+          <div>
+            <label style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>INSTITUCIÓN</label>
+            <select className="input" style={{ width: '100%', height: '36px', fontSize: '0.8rem' }}
+              value={filters.id_institucion} onChange={e => setFilter('id_institucion', e.target.value)}>
+              <option value="">Todas las II.EE.</option>
+              {filterData.instituciones.map(i => <option key={i.id_institucion} value={i.id_institucion}>{i.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>PERIODO</label>
+            <select className="input" style={{ width: '100%', height: '36px', fontSize: '0.8rem' }}
+              value={filters.id_periodo} onChange={e => setFilter('id_periodo', e.target.value)}>
+              <option value="">Todos los periodos</option>
+              {filterData.periodos.map(p => <option key={p.id_periodo} value={p.id_periodo}>{p.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>INSTRUMENTO</label>
+            <select className="input" style={{ width: '100%', height: '36px', fontSize: '0.8rem' }}
+              value={filters.id_ficha} onChange={e => setFilter('id_ficha', e.target.value)}>
+              <option value="">Todos los instrumentos</option>
+              {filterData.fichas.map(f => <option key={f.id_ficha} value={f.id_ficha}>{f.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>BUSCAR DOCENTE</label>
+            <input className="input" style={{ width: '100%', height: '36px', fontSize: '0.8rem' }}
+              placeholder="Nombre o institución..."
+              value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+          </div>
+          {activeCount > 0 && (
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button className="btn btn-outline" onClick={clearFilters}
+                style={{ height: '36px', width: '100%', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}>
+                <X size={13} /> Limpiar
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>Cargando datos de seguimiento...</div>
+      ) : filtered.length === 0 ? (
+        <div className="card" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <User size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+          <p>Sin datos con los filtros seleccionados.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: selectedDocente ? '1fr 1.6fr' : '1fr', gap: '1.5rem' }}>
+
+          {/* Tabla de docentes */}
+          <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{filtered.length} docente{filtered.length !== 1 ? 's' : ''}</span>
+              {selectedDocente && (
+                <button onClick={() => setSelectedDocente(null)} style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  Cerrar detalle ✕
+                </button>
+              )}
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: 'var(--background)' }}>
+                    {['Docente', 'Institución', 'Visitas', 'Promedio', 'Tendencia', 'Último Nivel'].map((h, i) => (
+                      <th key={i} style={{ padding: '0.65rem 0.9rem', fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((d, i) => {
+                    const isSelected = selectedDocente?.id_docente === d.id_docente;
+                    return (
+                      <tr key={d.id_docente}
+                        onClick={() => setSelectedDocente(isSelected ? null : d)}
+                        style={{
+                          borderBottom: '1px solid var(--border)', cursor: 'pointer',
+                          backgroundColor: isSelected ? 'var(--primary-light)' : 'transparent',
+                          transition: 'background 0.15s'
+                        }}
+                        onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'rgba(37,99,235,0.03)'; }}
+                        onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                      >
+                        <td style={{ padding: '0.75rem 0.9rem' }}>
+                          <div style={{ fontWeight: '600', fontSize: '0.82rem' }}>{d.nombre_docente}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{d.nivel_educativo || '—'}</div>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.9rem', fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.institucion}</td>
+                        <td style={{ padding: '0.75rem 0.9rem', fontSize: '0.8rem', textAlign: 'center', fontWeight: '700' }}>{d.visitas.length}</td>
+                        <td style={{ padding: '0.75rem 0.9rem', fontWeight: '800', fontSize: '0.88rem', color: 'var(--primary)' }}>{d.promedio}</td>
+                        <td style={{ padding: '0.75rem 0.9rem' }}><TendenciaBadge visitas={d.visitas} /></td>
+                        <td style={{ padding: '0.75rem 0.9rem' }}>
+                          <NivelBadge nombre={d.nivel_final} color={d.nivel_color} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Detalle del docente seleccionado */}
+          {selectedDocente && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+              {/* Header del docente */}
+              <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid var(--primary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 0.25rem', fontSize: '1.05rem', fontWeight: '800' }}>{selectedDocente.nombre_docente}</h3>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedDocente.institucion} · {selectedDocente.nivel_educativo || '—'}</p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '1.6rem', fontWeight: '900', color: selectedDocente.nivel_color || 'var(--primary)' }}>{selectedDocente.promedio} pts</div>
+                    <NivelBadge nombre={selectedDocente.nivel_final} color={selectedDocente.nivel_color} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Gráfico de evolución */}
+              <div className="card" style={{ padding: '1.5rem' }}>
+                <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: '700' }}>Evolución por Visita</h4>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={selectedDocente.visitas} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="numero" axisLine={false} tickLine={false}
+                      tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                      tickFormatter={v => `Visita ${v}`} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.75rem' }}
+                      formatter={(val, _, props) => [
+                        `${val} pts — ${props.payload.nivel}`,
+                        props.payload.fecha
+                      ]}
+                    />
+                    {nivelLines.map((nl, i) => (
+                      <ReferenceLine key={i} y={nl.y} stroke={nl.color} strokeDasharray="4 3" strokeWidth={1.5}
+                        label={{ value: nl.label, position: 'insideTopRight', fontSize: 9, fill: nl.color }} />
+                    ))}
+                    <Line type="monotone" dataKey="puntaje" stroke="var(--primary)" strokeWidth={3}
+                      dot={{ r: 5, fill: 'var(--primary)', stroke: 'white', strokeWidth: 2 }}
+                      activeDot={{ r: 7 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Tabla de visitas */}
+              <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+                <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--border)', fontWeight: '700', fontSize: '0.85rem' }}>Historial de Visitas</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: 'var(--background)' }}>
+                      {['Visita', 'Fecha', 'Instrumento', 'Puntaje', 'Nivel'].map((h, i) => (
+                        <th key={i} style={{ padding: '0.6rem 1rem', fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'left' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedDocente.visitas.map((v, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '0.65rem 1rem', fontWeight: '700', color: 'var(--primary)', fontSize: '0.82rem' }}>#{v.numero}</td>
+                        <td style={{ padding: '0.65rem 1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{v.fecha}</td>
+                        <td style={{ padding: '0.65rem 1rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>{v.instrumento}</td>
+                        <td style={{ padding: '0.65rem 1rem', fontWeight: '800', fontSize: '0.9rem', color: v.nivel_color || 'var(--primary)' }}>{v.puntaje}</td>
+                        <td style={{ padding: '0.65rem 1rem' }}><NivelBadge nombre={v.nivel} color={v.nivel_color} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SeguimientoPage;

@@ -12,6 +12,7 @@ import PeriodosPage from '../modules/dashboard/pages/PeriodosPage';
 import NuevoMonitoreoPage from '../modules/dashboard/pages/NuevoMonitoreoPage';
 import MisMonitoreosPage from '../modules/dashboard/pages/MisMonitoreosPage';
 import ReportesPage from '../modules/dashboard/pages/ReportesPage';
+import SeguimientoPage from '../modules/dashboard/pages/SeguimientoPage';
 import NivelesDesempenoPage from '../modules/dashboard/pages/NivelesDesempenoPage';
 import HistorialMonitoreoPage from '../modules/dashboard/pages/HistorialMonitoreoPage';
 import DashboardLayout from '../layouts/DashboardLayout';
@@ -83,6 +84,7 @@ const AppRoutes = () => {
       <Route path="/monitoreo/nuevo" element={<ProtectedRoute roles={['administrador', 'director', 'especialista']}><NuevoMonitoreoPage /></ProtectedRoute>} />
       <Route path="/monitoreo/historial" element={<ProtectedRoute roles={['administrador', 'director', 'especialista']}><HistorialMonitoreoPage /></ProtectedRoute>} />
       <Route path="/reportes" element={<ProtectedRoute roles={['administrador', 'director', 'especialista']}><ReportesPage /></ProtectedRoute>} />
+      <Route path="/seguimiento" element={<ProtectedRoute roles={['administrador', 'director', 'especialista']}><SeguimientoPage /></ProtectedRoute>} />
       <Route path="/solicitudes" element={<ProtectedRoute roles={['administrador', 'director', 'docente']}><SolicitudesPage /></ProtectedRoute>} />
       <Route path="/gestion-documental" element={<ProtectedRoute roles={['administrador', 'director', 'docente']}><GestionDocumentalPage /></ProtectedRoute>} />
       
