@@ -447,27 +447,30 @@ const NuevoMonitoreoPage = () => {
                     {q.opciones.length > 0 ? (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
                         {q.tipo_respuesta === 'seleccion_multiple' ? (
-                          // Checkboxes for multiple selection
+                          // Checkboxes for multiple selection — div wrapper to avoid double-fire
                           q.opciones.map(opt => {
                             const isChecked = (respuestas[q.id_pregunta]?.selected_opciones || []).some(o => String(o.id_opcion) === String(opt.id_opcion));
                             return (
-                              <label key={opt.id_opcion}
-                                onClick={e => e.preventDefault()}
+                              <div
+                                key={opt.id_opcion}
+                                onClick={() => handleMultiAnswerChange(q.id_pregunta, opt)}
                                 style={{
                                   display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                  padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem',
-                                  cursor: 'pointer',
+                                  padding: '0.75rem', border: `1px solid ${isChecked ? 'var(--primary)' : 'var(--border)'}`,
+                                  borderRadius: '0.5rem', cursor: 'pointer',
                                   backgroundColor: isChecked ? 'var(--primary-light)' : 'var(--surface)',
-                                  borderColor: isChecked ? 'var(--primary)' : 'var(--border)',
-                                  transition: 'all 0.2s'
-                                }}>
+                                  transition: 'all 0.2s', userSelect: 'none'
+                                }}
+                              >
                                 <input
                                   type="checkbox"
                                   checked={isChecked}
-                                  onChange={() => handleMultiAnswerChange(q.id_pregunta, opt)}
+                                  onChange={() => {}}
+                                  onClick={e => e.stopPropagation()}
+                                  style={{ pointerEvents: 'none' }}
                                 />
                                 <span style={{ fontSize: '0.875rem' }}>{opt.nombre_opcion} ({opt.valor})</span>
-                              </label>
+                              </div>
                             );
                           })
                         ) : (
