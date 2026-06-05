@@ -100,14 +100,14 @@ const NuevoMonitoreoPage = () => {
   };
 
   const handleAnswerChange = (qId, option) => {
-    setRespuestas({
-      ...respuestas,
-      [qId]: { 
-        ...respuestas[qId],
-        id_opcion: option.id_opcion, 
-        puntaje: parseFloat(option.valor) 
+    setRespuestas(prev => ({
+      ...prev,
+      [qId]: {
+        ...prev[qId],
+        id_opcion: option.id_opcion,
+        puntaje: parseFloat(option.valor)
       }
-    });
+    }));
   };
 
   // Multiple selection: toggle option in/out of selected set, sum their values
@@ -132,13 +132,13 @@ const NuevoMonitoreoPage = () => {
   };
 
   const handleCommentChange = (qId, text) => {
-    setRespuestas({
-      ...respuestas,
-      [qId]: { 
-        ...respuestas[qId],
-        comentario: text 
+    setRespuestas(prev => ({
+      ...prev,
+      [qId]: {
+        ...prev[qId],
+        comentario: text
       }
-    });
+    }));
   };
 
   const handleSubmit = async (e) => {
