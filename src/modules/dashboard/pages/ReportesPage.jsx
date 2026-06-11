@@ -58,8 +58,9 @@ const ReportesPage = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // INCLUIR nivel_desempeno en el backend para que funcione en todos los componentes
-        const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== ''));
+        // nivel_desempeno NO se envía al backend, se aplica solo en frontend sobre los rankings
+        const { nivel_desempeno, ...backendFilters } = filters;
+        const params = Object.fromEntries(Object.entries(backendFilters).filter(([, v]) => v !== ''));
         const res = await api.get(`/monitoreos/stats?${new URLSearchParams(params)}`);
         setStats(res.data);
       } catch (err) { console.error(err); }
@@ -98,22 +99,25 @@ const ReportesPage = () => {
   };
 
   const nivelesDisponibles = useMemo(() => {
-    // Usar siempre el catálogo completo de niveles, independiente del filtro activo
     if (filterData.niveles?.length > 0) return filterData.niveles;
-    // Fallback desde stats
     return stats?.niveles || [];
   }, [filterData.niveles, stats]);
 
-  // El filtro de nivel ahora se hace en el backend, no se necesita aplicar en frontend
+  // Filtro de nivel aplicado solo en frontend sobre los rankings
+  const applyNivel = (data) => {
+    if (!filters.nivel_desempeno || !data) return data;
+    return data.filter(d => d.nivel_final === filters.nivel_desempeno);
+  };
+
   const docentesData = {
-    general:    stats?.rankingDocentes,
-    primaria:   stats?.rankingDocentesPrimaria,
-    secundaria: stats?.rankingDocentesSecundaria,
+    general:    applyNivel(stats?.rankingDocentes),
+    primaria:   applyNivel(stats?.rankingDocentesPrimaria),
+    secundaria: applyNivel(stats?.rankingDocentesSecundaria),
   };
   const tutoresData = {
-    general:    stats?.rankingTutores,
-    primaria:   stats?.rankingTutoresPrimaria,
-    secundaria: stats?.rankingTutoresSecundaria,
+    general:    applyNivel(stats?.rankingTutores),
+    primaria:   applyNivel(stats?.rankingTutoresPrimaria),
+    secundaria: applyNivel(stats?.rankingTutoresSecundaria),
   };
 
   const niveles     = stats?.niveles || [];
