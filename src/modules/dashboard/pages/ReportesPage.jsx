@@ -288,7 +288,6 @@ const ReportesPage = () => {
           icon={<Award size={17} />}
           accentColor="var(--primary)"
           dataMap={docentesData}
-          fichas={filterData.fichas}
           badge={filters.nivel_desempeno ? (
             <span style={{
               fontSize: '0.7rem', fontWeight: '700', padding: '0.18rem 0.55rem', borderRadius: '2rem',
@@ -302,7 +301,6 @@ const ReportesPage = () => {
           icon={<Users size={17} />}
           accentColor="#8b5cf6"
           dataMap={tutoresData}
-          fichas={filterData.fichas}
           badge={filters.nivel_desempeno ? (
             <span style={{
               fontSize: '0.7rem', fontWeight: '700', padding: '0.18rem 0.55rem', borderRadius: '2rem',

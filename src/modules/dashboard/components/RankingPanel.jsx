@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, LabelList, ReferenceLine
+  ResponsiveContainer, Cell, LabelList
 } from 'recharts';
 import { List, BarChart2 } from 'lucide-react';
 
@@ -164,19 +164,11 @@ const NIVEL_TABS = [
  *   fichas       array  — lista de fichas para filtro
  *   badge        ReactNode (opcional, ej. NivelBadge activo)
  */
-const RankingPanel = ({ title, icon, accentColor = 'var(--primary)', dataMap, fichas = [], badge }) => {
-  const [view, setView]         = useState('list');   // 'list' | 'chart'
-  const [tab, setTab]           = useState('general');
-  const [fichaFilter, setFichaFilter] = useState('');
+const RankingPanel = ({ title, icon, accentColor = 'var(--primary)', dataMap, badge }) => {
+  const [view, setView] = useState('list');
+  const [tab, setTab]   = useState('general');
 
-  // Apply ficha filter client-side (ficha_nombre field)
-  const applyFichaFilter = (data) => {
-    if (!fichaFilter || !data) return data;
-    const fichaName = fichas.find(f => String(f.id_ficha) === fichaFilter)?.nombre || '';
-    return data.filter(d => d.ficha_nombre === fichaName || !fichaName);
-  };
-
-  const currentData = applyFichaFilter(dataMap[tab]);
+  const currentData = dataMap[tab];
 
   return (
     <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
@@ -188,19 +180,6 @@ const RankingPanel = ({ title, icon, accentColor = 'var(--primary)', dataMap, fi
         <span style={{ color: accentColor }}>{icon}</span>
         <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: 0, flex: 1 }}>{title}</h3>
         {badge}
-
-        {/* Ficha filter */}
-        {fichas.length > 0 && (
-          <select
-            className="input"
-            style={{ height: '30px', fontSize: '0.75rem', width: '150px', padding: '0 0.5rem' }}
-            value={fichaFilter}
-            onChange={e => setFichaFilter(e.target.value)}
-          >
-            <option value="">Todas las fichas</option>
-            {fichas.map(f => <option key={f.id_ficha} value={f.id_ficha}>{f.nombre}</option>)}
-          </select>
-        )}
 
         {/* View toggle */}
         <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: '0.4rem', overflow: 'hidden' }}>
