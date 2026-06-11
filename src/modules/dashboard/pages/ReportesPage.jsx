@@ -37,17 +37,18 @@ const ReportesPage = () => {
   const [stats, setStats]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [filterData, setFilterData] = useState({ instituciones: [], periodos: [], fichas: [], docentes: [] });
+  const [filterData, setFilterData] = useState({ instituciones: [], periodos: [], fichas: [], docentes: [], niveles: [] });
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [inst, per, fic, doc] = await Promise.all([
+        const [inst, per, fic, doc, niv] = await Promise.all([
           api.get('/instituciones'), api.get('/periodos'),
           api.get('/fichas'), api.get('/docentes'),
+          api.get('/niveles'),
         ]);
-        setFilterData({ instituciones: inst.data, periodos: per.data, fichas: fic.data, docentes: doc.data });
+        setFilterData({ instituciones: inst.data, periodos: per.data, fichas: fic.data, docentes: doc.data, niveles: niv.data });
       } catch (err) { console.error(err); }
     };
     load();
@@ -57,8 +58,8 @@ const ReportesPage = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { nivel_desempeno, ...backendFilters } = filters;
-        const params = Object.fromEntries(Object.entries(backendFilters).filter(([, v]) => v !== ''));
+        // INCLUIR nivel_desempeno en el backend para que funcione en todos los componentes
+        const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== ''));
         const res = await api.get(`/monitoreos/stats?${new URLSearchParams(params)}`);
         setStats(res.data);
       } catch (err) { console.error(err); }
@@ -97,27 +98,22 @@ const ReportesPage = () => {
   };
 
   const nivelesDisponibles = useMemo(() => {
-    const names = new Set();
-    [...(stats?.rankingDocentes || []), ...(stats?.rankingTutores || [])].forEach(d => {
-      if (d.nivel_final) names.add(d.nivel_final);
-    });
-    return [...names];
-  }, [stats]);
+    // Usar siempre el catálogo completo de niveles, independiente del filtro activo
+    if (filterData.niveles?.length > 0) return filterData.niveles;
+    // Fallback desde stats
+    return stats?.niveles || [];
+  }, [filterData.niveles, stats]);
 
-  const applyNivelFilter = (data) => {
-    if (!filters.nivel_desempeno || !data) return data;
-    return data.filter(d => d.nivel_final === filters.nivel_desempeno);
-  };
-
+  // El filtro de nivel ahora se hace en el backend, no se necesita aplicar en frontend
   const docentesData = {
-    general:    applyNivelFilter(stats?.rankingDocentes),
-    primaria:   applyNivelFilter(stats?.rankingDocentesPrimaria),
-    secundaria: applyNivelFilter(stats?.rankingDocentesSecundaria),
+    general:    stats?.rankingDocentes,
+    primaria:   stats?.rankingDocentesPrimaria,
+    secundaria: stats?.rankingDocentesSecundaria,
   };
   const tutoresData = {
-    general:    applyNivelFilter(stats?.rankingTutores),
-    primaria:   applyNivelFilter(stats?.rankingTutoresPrimaria),
-    secundaria: applyNivelFilter(stats?.rankingTutoresSecundaria),
+    general:    stats?.rankingTutores,
+    primaria:   stats?.rankingTutoresPrimaria,
+    secundaria: stats?.rankingTutoresSecundaria,
   };
 
   const niveles     = stats?.niveles || [];
@@ -204,7 +200,7 @@ const ReportesPage = () => {
             <select className="input" style={{ width: '100%', height: '36px', fontSize: '0.8rem' }}
               value={filters.nivel_desempeno} onChange={e => setFilter('nivel_desempeno', e.target.value)}>
               <option value="">Todos los niveles</option>
-              {nivelesDisponibles.map(n => <option key={n} value={n}>{n}</option>)}
+              {nivelesDisponibles.map(n => <option key={n.id_nivel || n.nombre} value={n.nombre}>{n.nombre}</option>)}
             </select>
           </div>
           {activeFilterCount > 0 && (
