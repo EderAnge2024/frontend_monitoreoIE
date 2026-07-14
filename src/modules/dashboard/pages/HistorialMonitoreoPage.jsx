@@ -41,6 +41,7 @@ const HistorialMonitoreoPage = () => {
   const [selectedMonitoreo, setSelected]  = useState(null);
   const [showModal, setShowModal]         = useState(false);
   const [sortDir, setSortDir]             = useState('desc');
+  const [selectedToDelete, setSelectedToDelete] = useState(null);
 
   // Filters
   const [search, setSearch]           = useState('');
@@ -88,7 +89,7 @@ const HistorialMonitoreoPage = () => {
     if (!window.confirm('¿Estás seguro de que deseas eliminar este monitoreo? Esta acción borrará las respuestas y el puntaje permanentemente.')) return;
     try {
       await api.delete(`/monitoreos/${id}`);
-      // Volver a cargar la lista
+      setSelectedToDelete(null);
       fetchMonitoreos();
     } catch (err) {
       console.error(err);
@@ -199,10 +200,26 @@ const HistorialMonitoreoPage = () => {
           <span style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--text-main)' }}>
             {loading ? 'Cargando...' : `${sorted.length} monitoreo${sorted.length !== 1 ? 's' : ''} encontrado${sorted.length !== 1 ? 's' : ''}`}
           </span>
-          <button onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600' }}>
-            Fecha {sortDir === 'desc' ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            {isAdmin && selectedToDelete && (
+              <button
+                className="btn btn-outline"
+                onClick={() => handleDelete(selectedToDelete)}
+                style={{ 
+                  display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.8rem', 
+                  fontSize: '0.78rem', fontWeight: '600', color: '#dc2626', borderColor: 'rgba(220,38,38,0.2)' 
+                }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(220,38,38,0.05)'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <Trash2 size={13} /> Eliminar Seleccionado
+              </button>
+            )}
+            <button onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600' }}>
+              Fecha {sortDir === 'desc' ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -223,6 +240,7 @@ const HistorialMonitoreoPage = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ backgroundColor: 'rgba(0,0,0,0.025)', borderBottom: '1px solid var(--border)' }}>
+                  {isAdmin && <th style={{ padding: '0.875rem 1rem', width: '40px' }}></th>}
                   {['FECHA', ...(isDocente ? [] : ['DOCENTE']), 'INSTRUMENTO', ...(isAdmin ? ['INSTITUCIÓN'] : []), 'EVALUADOR', 'VISITA', 'TIPO', 'PUNTAJE', 'NIVEL', 'ESTADO', ''].map((h, i) => (
                     <th key={i} style={{ padding: '0.875rem 1rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', textAlign: i === 0 ? 'left' : 'left', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
@@ -233,6 +251,17 @@ const HistorialMonitoreoPage = () => {
                   <tr key={m.id_monitoreo} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}
                     onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(37,99,235,0.025)'}
                     onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                    {isAdmin && (
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        <input 
+                          type="radio" 
+                          name="monitoreoSelect" 
+                          checked={selectedToDelete === m.id_monitoreo} 
+                          onChange={() => setSelectedToDelete(m.id_monitoreo)} 
+                          style={{ cursor: 'pointer', accentColor: 'var(--primary)' }}
+                        />
+                      </td>
+                    )}
                     <td style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         <Calendar size={14} />
@@ -289,20 +318,6 @@ const HistorialMonitoreoPage = () => {
                         >
                           <Eye size={13} /> Ver detalle
                         </button>
-                        {isAdmin && (
-                          <button
-                            className="btn btn-outline"
-                            onClick={() => handleDelete(m.id_monitoreo)}
-                            style={{ 
-                              display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.8rem', 
-                              fontSize: '0.78rem', fontWeight: '600', color: '#dc2626', borderColor: 'rgba(220,38,38,0.2)' 
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(220,38,38,0.05)'}
-                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>

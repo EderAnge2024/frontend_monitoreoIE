@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, BarChart, Bar, Legend
@@ -39,6 +40,7 @@ const NivelBadge = ({ nombre, color }) => (
 const EMPTY = { id_institucion: '', id_periodo: '', id_ficha: '' };
 
 const SeguimientoPage = () => {
+  const { user } = useAuth();
   const [docentes, setDocentes]     = useState([]);
   const [filterData, setFilterData] = useState({ instituciones: [], periodos: [], fichas: [] });
   const [filters, setFilters]       = useState(EMPTY);
@@ -135,8 +137,8 @@ const SeguimientoPage = () => {
     color: n.color || '#94a3b8'
   }));
 
-  const formatAnalisisIndividual = () => {
-    if (!analisisData || analisisData.tipo !== 'individual') return { chartData: [], visitas: [] };
+  const formatAnalisisData = () => {
+    if (!analisisData) return { chartData: [], visitas: [] };
     const result = {};
     const visitasSet = new Set();
     
@@ -156,7 +158,7 @@ const SeguimientoPage = () => {
     };
   };
 
-  const individualChartInfo = formatAnalisisIndividual();
+  const chartInfo = formatAnalisisData();
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#f43f5e'];
 
   return (
@@ -248,25 +250,33 @@ const SeguimientoPage = () => {
         </div>
       ) : (
         <>
-          {!selectedDocente && filters.id_ficha && analisisData?.tipo === 'general' && (
-            <div className="card fade-in" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+          {!selectedDocente && filters.id_ficha && (analisisData?.tipo === 'general' || user?.role === 'docente') && (
+            <div className="card fade-in" style={{ padding: '1.5rem', marginBottom: '1.5rem', minHeight: '300px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
                 <BarChart2 color="var(--primary)" />
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>Análisis Institucional por Criterio</h3>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>
+                  {user?.role === 'docente' ? 'Mi Análisis Histórico por Criterio' : 'Análisis Institucional por Criterio'}
+                </h3>
               </div>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={analisisData.datos.map(d => ({...d, promedio_puntaje: parseFloat(d.promedio_puntaje), name: d.pregunta.length > 25 ? d.pregunta.substring(0,25) + '...' : d.pregunta}))} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} angle={-45} textAnchor="end" />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.8rem', maxWidth: '300px', whiteSpace: 'normal' }}
-                    formatter={(val) => [`${val} pts`, 'Promedio General']}
-                    labelFormatter={(label, data) => data[0]?.payload?.pregunta || label}
-                  />
-                  <Bar dataKey="promedio_puntaje" fill="var(--primary)" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                </BarChart>
-              </ResponsiveContainer>
+              {chartInfo.chartData.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Cargando datos del análisis...</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={chartInfo.chartData} margin={{ top: 20, right: 0, left: 0, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-muted)' }} angle={-45} textAnchor="end" />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.8rem', maxWidth: '350px', whiteSpace: 'normal' }}
+                      labelFormatter={(label, data) => data[0]?.payload?.fullName || label}
+                    />
+                    <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '0.85rem' }} />
+                    {chartInfo.visitas.map((visKey, index) => (
+                      <Bar key={visKey} dataKey={visKey} fill={COLORS[index % COLORS.length]} radius={[2, 2, 0, 0]} maxBarSize={30} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           )}
 
@@ -416,11 +426,11 @@ const SeguimientoPage = () => {
                 ) : (
                   <div className="card fade-in" style={{ padding: '1.5rem', minHeight: '300px' }}>
                     <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: '700' }}>Comparación Histórica por Pregunta</h4>
-                    {!analisisData || individualChartInfo.chartData.length === 0 ? (
+                    {!analisisData || chartInfo.chartData.length === 0 ? (
                       <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Cargando datos del análisis...</p>
                     ) : (
                       <ResponsiveContainer width="100%" height={400}>
-                        <BarChart data={individualChartInfo.chartData} margin={{ top: 20, right: 0, left: 0, bottom: 60 }}>
+                        <BarChart data={chartInfo.chartData} margin={{ top: 20, right: 0, left: 0, bottom: 60 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-muted)' }} angle={-45} textAnchor="end" />
                           <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
@@ -429,7 +439,7 @@ const SeguimientoPage = () => {
                             labelFormatter={(label, data) => data[0]?.payload?.fullName || label}
                           />
                           <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '0.85rem' }} />
-                          {individualChartInfo.visitas.map((visKey, index) => (
+                          {chartInfo.visitas.map((visKey, index) => (
                             <Bar key={visKey} dataKey={visKey} fill={COLORS[index % COLORS.length]} radius={[2, 2, 0, 0]} maxBarSize={30} />
                           ))}
                         </BarChart>

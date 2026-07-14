@@ -84,7 +84,7 @@ const AppRoutes = () => {
       <Route path="/monitoreo/nuevo" element={<ProtectedRoute roles={['administrador', 'director', 'especialista']}><NuevoMonitoreoPage /></ProtectedRoute>} />
       <Route path="/monitoreo/historial" element={<ProtectedRoute roles={['administrador', 'director', 'especialista']}><HistorialMonitoreoPage /></ProtectedRoute>} />
       <Route path="/reportes" element={<ProtectedRoute roles={['administrador', 'director', 'especialista']}><ReportesPage /></ProtectedRoute>} />
-      <Route path="/seguimiento" element={<ProtectedRoute roles={['administrador', 'director', 'especialista']}><SeguimientoPage /></ProtectedRoute>} />
+      <Route path="/seguimiento" element={<ProtectedRoute roles={['administrador', 'director', 'especialista', 'docente']}><SeguimientoPage /></ProtectedRoute>} />
       <Route path="/solicitudes" element={<ProtectedRoute roles={['administrador', 'director', 'docente']}><SolicitudesPage /></ProtectedRoute>} />
       <Route path="/gestion-documental" element={<ProtectedRoute roles={['administrador', 'director', 'docente']}><GestionDocumentalPage /></ProtectedRoute>} />
       
