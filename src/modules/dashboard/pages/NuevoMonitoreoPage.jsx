@@ -38,7 +38,7 @@ const NuevoMonitoreoPage = () => {
   });
 
   const [respuestas, setRespuestas] = useState({}); // { id_pregunta: { id_opcion, texto, puntaje } }
-  const [evaluadosIds, setEvaluadosIds] = useState([]);
+  const [evaluadosData, setEvaluadosData] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [niveles, setNiveles] = useState([]);
 
@@ -67,13 +67,17 @@ const NuevoMonitoreoPage = () => {
   useEffect(() => {
     const fetchEvaluados = async () => {
       if (!formData.id_periodo || !formData.id_ficha) {
-        setEvaluadosIds([]);
+        setEvaluadosData({});
         return;
       }
       try {
         const url = `/monitoreos/evaluados/${formData.id_periodo}?id_ficha=${formData.id_ficha}`;
         const res = await api.get(url);
-        setEvaluadosIds(res.data.map(id => parseInt(id)));
+        const mapData = {};
+        res.data.forEach(item => {
+          mapData[item.id_docente] = parseInt(item.conteo);
+        });
+        setEvaluadosData(mapData);
       } catch (err) { console.error(err); }
     };
     fetchEvaluados();
@@ -303,20 +307,20 @@ const NuevoMonitoreoPage = () => {
                     return full.includes(searchTerm.toLowerCase());
                   })
                   .map(d => {
-                    const isEvaluated = evaluadosIds.includes(parseInt(d.id_docente));
+                    const countEvaluations = evaluadosData[d.id_docente] || 0;
+                    const isEvaluated = countEvaluations > 0;
                     const isSelected = formData.id_docente == d.id_docente;
                     
                     return (
                       <div 
                         key={d.id_docente}
-                        onClick={() => !isEvaluated && setFormData({...formData, id_docente: d.id_docente})}
+                        onClick={() => setFormData({...formData, id_docente: d.id_docente, numero_visita: countEvaluations + 1})}
                         style={{ 
                           padding: '1rem', 
                           borderRadius: '0.75rem', 
                           border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)',
                           backgroundColor: isSelected ? 'var(--primary-light)' : 'var(--surface)',
-                          cursor: isEvaluated ? 'not-allowed' : 'pointer',
-                          opacity: isEvaluated ? 0.6 : 1,
+                          cursor: 'pointer',
                           position: 'relative',
                           transition: 'all 0.2s',
                           display: 'flex',
@@ -326,7 +330,7 @@ const NuevoMonitoreoPage = () => {
                       >
                         <div style={{ 
                           width: '44px', height: '44px', borderRadius: '50%', 
-                          backgroundColor: isEvaluated ? '#94a3b8' : 'var(--primary)', 
+                          backgroundColor: isEvaluated ? '#3b82f6' : 'var(--primary)', 
                           color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800'
                         }}>
                           {d.nombres.charAt(0)}{d.apellidos.charAt(0)}
@@ -340,10 +344,10 @@ const NuevoMonitoreoPage = () => {
                         {isEvaluated && (
                           <span style={{ 
                             position: 'absolute', top: '0.5rem', right: '0.5rem', 
-                            fontSize: '0.6rem', fontWeight: '900', color: 'var(--danger)', 
-                            backgroundColor: '#fee2e2', padding: '0.2rem 0.5rem', borderRadius: '4px' 
+                            fontSize: '0.6rem', fontWeight: '900', color: '#1e40af', 
+                            backgroundColor: '#dbeafe', padding: '0.2rem 0.5rem', borderRadius: '4px' 
                           }}>
-                            CON ESTA FICHA YA EVALUADO
+                            YA EVALUADO {countEvaluations} VECES - REUTILIZAR
                           </span>
                         )}
                         {isSelected && (
@@ -368,7 +372,11 @@ const NuevoMonitoreoPage = () => {
             <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <Calendar size={24} color="var(--primary)" /> Datos de la Sesión
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="label">Número de Visita</label>
+                <input type="number" className="input" min="1" value={formData.numero_visita} onChange={e => setFormData({...formData, numero_visita: parseInt(e.target.value) || 1})} />
+              </div>
               <div className="form-group">
                 <label className="label">Fecha</label>
                 <input type="date" className="input" value={formData.fecha} onChange={e => setFormData({...formData, fecha: e.target.value})} />

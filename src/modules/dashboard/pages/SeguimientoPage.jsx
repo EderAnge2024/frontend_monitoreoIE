@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import api from '../../../services/api';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine
+  ResponsiveContainer, ReferenceLine, BarChart, Bar, Legend
 } from 'recharts';
-import { TrendingUp, TrendingDown, Minus, Download, Filter, X, User } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Download, Filter, X, User, BarChart2 } from 'lucide-react';
 
 const TendenciaBadge = ({ visitas }) => {
   if (visitas.length < 2) return <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>;
@@ -47,8 +47,10 @@ const SeguimientoPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDocente, setSelectedDocente] = useState(null);
   const [niveles, setNiveles]       = useState([]);
+  
+  const [analisisData, setAnalisisData] = useState(null);
+  const [activeTab, setActiveTab] = useState('resumen');
 
-  // Load filter options
   useEffect(() => {
     const load = async () => {
       try {
@@ -63,7 +65,6 @@ const SeguimientoPage = () => {
     load();
   }, []);
 
-  // Load seguimiento data
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -77,6 +78,26 @@ const SeguimientoPage = () => {
     };
     fetchData();
   }, [filters]);
+
+  useEffect(() => {
+    const fetchAnalisis = async () => {
+      if (!filters.id_ficha) {
+        setAnalisisData(null);
+        return;
+      }
+      try {
+        const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== ''));
+        if (selectedDocente) {
+          params.id_docente = selectedDocente.id_docente;
+        }
+        const res = await api.get(`/monitoreos/seguimiento/analisis?${new URLSearchParams(params)}`);
+        setAnalisisData(res.data);
+      } catch (err) {
+        console.error('Error cargando análisis:', err);
+      }
+    };
+    fetchAnalisis();
+  }, [filters, selectedDocente]);
 
   const setFilter = (key, val) => setFilters(f => ({ ...f, [key]: val }));
   const clearFilters = () => setFilters(EMPTY);
@@ -108,17 +129,39 @@ const SeguimientoPage = () => {
     return `${d.nombre_docente} ${d.institucion}`.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  // Niveles reference lines for chart
   const nivelLines = niveles.map(n => ({
     y: parseFloat(n.puntaje_minimo),
     label: n.nombre,
     color: n.color || '#94a3b8'
   }));
 
+  const formatAnalisisIndividual = () => {
+    if (!analisisData || analisisData.tipo !== 'individual') return { chartData: [], visitas: [] };
+    const result = {};
+    const visitasSet = new Set();
+    
+    analisisData.datos.forEach(row => {
+      if (!result[row.id_pregunta]) {
+        const nameTrunc = row.pregunta.length > 30 ? row.pregunta.substring(0, 30) + '...' : row.pregunta;
+        result[row.id_pregunta] = { name: nameTrunc, fullName: row.pregunta, categoria: row.categoria };
+      }
+      const visKey = `Visita ${row.numero_visita}`;
+      visitasSet.add(visKey);
+      result[row.id_pregunta][visKey] = parseFloat(row.promedio_puntaje);
+    });
+    
+    return {
+      chartData: Object.values(result),
+      visitas: Array.from(visitasSet).sort()
+    };
+  };
+
+  const individualChartInfo = formatAnalisisIndividual();
+  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#f43f5e'];
+
   return (
     <div className="fade-in" style={{ paddingBottom: '3rem' }}>
 
-      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.875rem', fontWeight: '800', color: 'var(--text-main)', marginBottom: '0.25rem' }}>
@@ -139,7 +182,6 @@ const SeguimientoPage = () => {
         </button>
       </div>
 
-      {/* Filtros */}
       <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
           <Filter size={14} color="var(--primary)" />
@@ -190,6 +232,11 @@ const SeguimientoPage = () => {
             </div>
           )}
         </div>
+        {!filters.id_ficha && (
+          <p style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--primary)' }}>
+            💡 Selecciona un instrumento en los filtros para ver el análisis avanzado de criterios.
+          </p>
+        )}
       </div>
 
       {loading ? (
@@ -200,133 +247,200 @@ const SeguimientoPage = () => {
           <p>Sin datos con los filtros seleccionados.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: selectedDocente ? '1fr 1.6fr' : '1fr', gap: '1.5rem' }}>
-
-          {/* Tabla de docentes */}
-          <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{filtered.length} docente{filtered.length !== 1 ? 's' : ''}</span>
-              {selectedDocente && (
-                <button onClick={() => setSelectedDocente(null)} style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                  Cerrar detalle ✕
-                </button>
-              )}
-            </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: 'var(--background)' }}>
-                    {['Docente', 'Institución', 'Visitas', 'Promedio', 'Tendencia', 'Último Nivel'].map((h, i) => (
-                      <th key={i} style={{ padding: '0.65rem 0.9rem', fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((d, i) => {
-                    const isSelected = selectedDocente?.id_docente === d.id_docente;
-                    return (
-                      <tr key={d.id_docente}
-                        onClick={() => setSelectedDocente(isSelected ? null : d)}
-                        style={{
-                          borderBottom: '1px solid var(--border)', cursor: 'pointer',
-                          backgroundColor: isSelected ? 'var(--primary-light)' : 'transparent',
-                          transition: 'background 0.15s'
-                        }}
-                        onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'rgba(37,99,235,0.03)'; }}
-                        onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                      >
-                        <td style={{ padding: '0.75rem 0.9rem' }}>
-                          <div style={{ fontWeight: '600', fontSize: '0.82rem' }}>{d.nombre_docente}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{d.nivel_educativo || '—'}</div>
-                        </td>
-                        <td style={{ padding: '0.75rem 0.9rem', fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.institucion}</td>
-                        <td style={{ padding: '0.75rem 0.9rem', fontSize: '0.8rem', textAlign: 'center', fontWeight: '700' }}>{d.visitas.length}</td>
-                        <td style={{ padding: '0.75rem 0.9rem', fontWeight: '800', fontSize: '0.88rem', color: 'var(--primary)' }}>{d.promedio}</td>
-                        <td style={{ padding: '0.75rem 0.9rem' }}><TendenciaBadge visitas={d.visitas} /></td>
-                        <td style={{ padding: '0.75rem 0.9rem' }}>
-                          <NivelBadge nombre={d.nivel_final} color={d.nivel_color} />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Detalle del docente seleccionado */}
-          {selectedDocente && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-              {/* Header del docente */}
-              <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid var(--primary)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  <div>
-                    <h3 style={{ margin: '0 0 0.25rem', fontSize: '1.05rem', fontWeight: '800' }}>{selectedDocente.nombre_docente}</h3>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedDocente.institucion} · {selectedDocente.nivel_educativo || '—'}</p>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.6rem', fontWeight: '900', color: selectedDocente.nivel_color || 'var(--primary)' }}>{selectedDocente.promedio} pts</div>
-                    <NivelBadge nombre={selectedDocente.nivel_final} color={selectedDocente.nivel_color} />
-                  </div>
-                </div>
+        <>
+          {!selectedDocente && filters.id_ficha && analisisData?.tipo === 'general' && (
+            <div className="card fade-in" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                <BarChart2 color="var(--primary)" />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>Análisis Institucional por Criterio</h3>
               </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={analisisData.datos.map(d => ({...d, promedio_puntaje: parseFloat(d.promedio_puntaje), name: d.pregunta.length > 25 ? d.pregunta.substring(0,25) + '...' : d.pregunta}))} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} angle={-45} textAnchor="end" />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.8rem', maxWidth: '300px', whiteSpace: 'normal' }}
+                    formatter={(val) => [`${val} pts`, 'Promedio General']}
+                    labelFormatter={(label, data) => data[0]?.payload?.pregunta || label}
+                  />
+                  <Bar dataKey="promedio_puntaje" fill="var(--primary)" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
 
-              {/* Gráfico de evolución */}
-              <div className="card" style={{ padding: '1.5rem' }}>
-                <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: '700' }}>Evolución por Visita</h4>
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={selectedDocente.visitas} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                    <XAxis dataKey="numero" axisLine={false} tickLine={false}
-                      tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
-                      tickFormatter={v => `Visita ${v}`} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.75rem' }}
-                      formatter={(val, _, props) => [
-                        `${val} pts — ${props.payload.nivel}`,
-                        props.payload.fecha
-                      ]}
-                    />
-                    {nivelLines.map((nl, i) => (
-                      <ReferenceLine key={i} y={nl.y} stroke={nl.color} strokeDasharray="4 3" strokeWidth={1.5}
-                        label={{ value: nl.label, position: 'insideTopRight', fontSize: 9, fill: nl.color }} />
-                    ))}
-                    <Line type="monotone" dataKey="puntaje" stroke="var(--primary)" strokeWidth={3}
-                      dot={{ r: 5, fill: 'var(--primary)', stroke: 'white', strokeWidth: 2 }}
-                      activeDot={{ r: 7 }} />
-                  </LineChart>
-                </ResponsiveContainer>
+          <div style={{ display: 'grid', gridTemplateColumns: selectedDocente ? '1fr 1.6fr' : '1fr', gap: '1.5rem' }}>
+            <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{filtered.length} docente{filtered.length !== 1 ? 's' : ''}</span>
+                {selectedDocente && (
+                  <button onClick={() => { setSelectedDocente(null); setActiveTab('resumen'); }} style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    Cerrar detalle ✕
+                  </button>
+                )}
               </div>
-
-              {/* Tabla de visitas */}
-              <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-                <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--border)', fontWeight: '700', fontSize: '0.85rem' }}>Historial de Visitas</div>
+              <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ backgroundColor: 'var(--background)' }}>
-                      {['Visita', 'Fecha', 'Instrumento', 'Puntaje', 'Nivel'].map((h, i) => (
-                        <th key={i} style={{ padding: '0.6rem 1rem', fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'left' }}>{h}</th>
+                      {['Docente', 'Institución', 'Visitas', 'Promedio', 'Tendencia', 'Último Nivel'].map((h, i) => (
+                        <th key={i} style={{ padding: '0.65rem 0.9rem', fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedDocente.visitas.map((v, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '0.65rem 1rem', fontWeight: '700', color: 'var(--primary)', fontSize: '0.82rem' }}>#{v.numero}</td>
-                        <td style={{ padding: '0.65rem 1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{v.fecha}</td>
-                        <td style={{ padding: '0.65rem 1rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>{v.instrumento}</td>
-                        <td style={{ padding: '0.65rem 1rem', fontWeight: '800', fontSize: '0.9rem', color: v.nivel_color || 'var(--primary)' }}>{v.puntaje}</td>
-                        <td style={{ padding: '0.65rem 1rem' }}><NivelBadge nombre={v.nivel} color={v.nivel_color} /></td>
-                      </tr>
-                    ))}
+                    {filtered.map((d, i) => {
+                      const isSelected = selectedDocente?.id_docente === d.id_docente;
+                      return (
+                        <tr key={d.id_docente}
+                          onClick={() => { setSelectedDocente(isSelected ? null : d); setActiveTab('resumen'); }}
+                          style={{
+                            borderBottom: '1px solid var(--border)', cursor: 'pointer',
+                            backgroundColor: isSelected ? 'var(--primary-light)' : 'transparent',
+                            transition: 'background 0.15s'
+                          }}
+                          onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'rgba(37,99,235,0.03)'; }}
+                          onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        >
+                          <td style={{ padding: '0.75rem 0.9rem' }}>
+                            <div style={{ fontWeight: '600', fontSize: '0.82rem' }}>{d.nombre_docente}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{d.nivel_educativo || '—'}</div>
+                          </td>
+                          <td style={{ padding: '0.75rem 0.9rem', fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.institucion}</td>
+                          <td style={{ padding: '0.75rem 0.9rem', fontSize: '0.8rem', textAlign: 'center', fontWeight: '700' }}>{d.visitas.length}</td>
+                          <td style={{ padding: '0.75rem 0.9rem', fontWeight: '800', fontSize: '0.88rem', color: 'var(--primary)' }}>{d.promedio}</td>
+                          <td style={{ padding: '0.75rem 0.9rem' }}><TendenciaBadge visitas={d.visitas} /></td>
+                          <td style={{ padding: '0.75rem 0.9rem' }}>
+                            <NivelBadge nombre={d.nivel_final} color={d.nivel_color} />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             </div>
-          )}
-        </div>
+
+            {selectedDocente && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }} className="fade-in">
+                <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid var(--primary)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div>
+                      <h3 style={{ margin: '0 0 0.25rem', fontSize: '1.05rem', fontWeight: '800' }}>{selectedDocente.nombre_docente}</h3>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedDocente.institucion} · {selectedDocente.nivel_educativo || '—'}</p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '1.6rem', fontWeight: '900', color: selectedDocente.nivel_color || 'var(--primary)' }}>{selectedDocente.promedio} pts</div>
+                      <NivelBadge nombre={selectedDocente.nivel_final} color={selectedDocente.nivel_color} />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                  <button onClick={() => setActiveTab('resumen')} 
+                    style={{ 
+                      padding: '0.75rem 1rem', background: 'none', border: 'none', cursor: 'pointer',
+                      borderBottom: activeTab === 'resumen' ? '2px solid var(--primary)' : '2px solid transparent', 
+                      color: activeTab === 'resumen' ? 'var(--primary)' : 'var(--text-muted)', 
+                      fontWeight: activeTab === 'resumen' ? '700' : '600'
+                    }}>
+                    Evolución General
+                  </button>
+                  <button onClick={() => setActiveTab('analisis')} 
+                    style={{ 
+                      padding: '0.75rem 1rem', background: 'none', border: 'none', cursor: 'pointer',
+                      borderBottom: activeTab === 'analisis' ? '2px solid var(--primary)' : '2px solid transparent', 
+                      color: activeTab === 'analisis' ? 'var(--primary)' : 'var(--text-muted)', 
+                      fontWeight: activeTab === 'analisis' ? '700' : '600',
+                      display: 'flex', alignItems: 'center', gap: '0.35rem'
+                    }}
+                    disabled={!filters.id_ficha}>
+                    <BarChart2 size={16} /> Análisis por Criterios {(!filters.id_ficha) && "(Filtrar por ficha)"}
+                  </button>
+                </div>
+
+                {activeTab === 'resumen' ? (
+                  <>
+                    <div className="card fade-in" style={{ padding: '1.5rem' }}>
+                      <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: '700' }}>Evolución del Puntaje por Visita</h4>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <LineChart data={selectedDocente.visitas} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                          <XAxis dataKey="numero" axisLine={false} tickLine={false}
+                            tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                            tickFormatter={v => `Visita ${v}`} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.75rem' }}
+                            formatter={(val, _, props) => [
+                              `${val} pts — ${props.payload.nivel}`,
+                              props.payload.fecha
+                            ]}
+                          />
+                          {nivelLines.map((nl, i) => (
+                            <ReferenceLine key={i} y={nl.y} stroke={nl.color} strokeDasharray="4 3" strokeWidth={1.5}
+                              label={{ value: nl.label, position: 'insideTopRight', fontSize: 9, fill: nl.color }} />
+                          ))}
+                          <Line type="monotone" dataKey="puntaje" stroke="var(--primary)" strokeWidth={3}
+                            dot={{ r: 5, fill: 'var(--primary)', stroke: 'white', strokeWidth: 2 }}
+                            activeDot={{ r: 7 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="card fade-in" style={{ padding: '0', overflow: 'hidden' }}>
+                      <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--border)', fontWeight: '700', fontSize: '0.85rem' }}>Historial de Visitas</div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: 'var(--background)' }}>
+                            {['Visita', 'Fecha', 'Instrumento', 'Puntaje', 'Nivel'].map((h, i) => (
+                              <th key={i} style={{ padding: '0.6rem 1rem', fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'left' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedDocente.visitas.map((v, i) => (
+                            <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                              <td style={{ padding: '0.65rem 1rem', fontWeight: '700', color: 'var(--primary)', fontSize: '0.82rem' }}>#{v.numero}</td>
+                              <td style={{ padding: '0.65rem 1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{v.fecha}</td>
+                              <td style={{ padding: '0.65rem 1rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>{v.instrumento}</td>
+                              <td style={{ padding: '0.65rem 1rem', fontWeight: '800', fontSize: '0.9rem', color: v.nivel_color || 'var(--primary)' }}>{v.puntaje}</td>
+                              <td style={{ padding: '0.65rem 1rem' }}><NivelBadge nombre={v.nivel} color={v.nivel_color} /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                ) : (
+                  <div className="card fade-in" style={{ padding: '1.5rem', minHeight: '300px' }}>
+                    <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: '700' }}>Comparación Histórica por Pregunta</h4>
+                    {!analisisData || individualChartInfo.chartData.length === 0 ? (
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Cargando datos del análisis...</p>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={400}>
+                        <BarChart data={individualChartInfo.chartData} margin={{ top: 20, right: 0, left: 0, bottom: 60 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-muted)' }} angle={-45} textAnchor="end" />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.8rem', maxWidth: '350px', whiteSpace: 'normal' }}
+                            labelFormatter={(label, data) => data[0]?.payload?.fullName || label}
+                          />
+                          <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '0.85rem' }} />
+                          {individualChartInfo.visitas.map((visKey, index) => (
+                            <Bar key={visKey} dataKey={visKey} fill={COLORS[index % COLORS.length]} radius={[2, 2, 0, 0]} maxBarSize={30} />
+                          ))}
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
