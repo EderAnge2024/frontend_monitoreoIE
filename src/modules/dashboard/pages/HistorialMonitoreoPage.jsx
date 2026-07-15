@@ -241,8 +241,8 @@ const HistorialMonitoreoPage = () => {
               <thead>
                 <tr style={{ backgroundColor: 'rgba(0,0,0,0.025)', borderBottom: '1px solid var(--border)' }}>
                   {isAdmin && <th style={{ padding: '0.875rem 1rem', width: '40px' }}></th>}
-                  {['FECHA', ...(isDocente ? [] : ['DOCENTE']), 'INSTRUMENTO', ...(isAdmin ? ['INSTITUCIÓN'] : []), 'EVALUADOR', 'VISITA', 'TIPO', 'PUNTAJE', 'NIVEL', 'ESTADO', ''].map((h, i) => (
-                    <th key={i} style={{ padding: '0.875rem 1rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', textAlign: i === 0 ? 'left' : 'left', whiteSpace: 'nowrap' }}>{h}</th>
+                  {['FECHA', ...(isDocente ? [] : ['DOCENTE']), 'INSTRUMENTO', ...(isAdmin ? ['INSTITUCIÓN'] : []), 'EVALUADOR', 'VISITA', 'TIPO', 'PUNTAJE', 'NIVEL', 'ESTADO', ''].map((h) => (
+                    <th key={h || 'accion'} style={{ padding: '0.875rem 1rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
