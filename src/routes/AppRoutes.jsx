@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children, roles = [] }) => {
 
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <div className="fade-in">Cargando aplicación...</div>
+      <div className="fade-in">Cargando plataforma...</div>
     </div>
   );
 
@@ -45,7 +45,7 @@ const PublicRoute = ({ children }) => {
 
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <div className="fade-in">Cargando aplicación...</div>
+      <div className="fade-in">Cargando plataforma...</div>
     </div>
   );
 
