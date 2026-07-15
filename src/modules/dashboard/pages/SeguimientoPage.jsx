@@ -116,8 +116,14 @@ const SeguimientoPage = () => {
       const a = document.createElement('a');
       a.href = url;
       a.download = `Seguimiento_Docentes_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+      // Usar setTimeout para asegurar que el click se procesó antes de limpiar
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 100);
     } catch (err) {
       console.error('Error al exportar:', err);
       alert('Error al generar el archivo Excel. Intente nuevamente.');
