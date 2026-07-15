@@ -216,8 +216,10 @@ const DashboardPage = () => {
         <div className="card" style={{ padding: '1.5rem' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.5rem' }}>Niveles de Tutoría</h3>
           <div style={{ height: '240px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              {stats?.distribucionTutores?.length > 0 ? (
+            {!stats?.distribucionTutores?.length ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Sin datos de tutoría</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={stats.distribucionTutores} cx="50%" cy="45%" outerRadius={70} dataKey="cantidad" nameKey="nivel_final" paddingAngle={3}>
                     {stats.distribucionTutores.map((entry, i) => <Cell key={i} fill={entry.color || '#6366f1'} />)}
@@ -225,10 +227,8 @@ const DashboardPage = () => {
                   <Tooltip contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }} />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '0.65rem' }} />
                 </PieChart>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Sin datos de tutoría</div>
-              )}
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>
