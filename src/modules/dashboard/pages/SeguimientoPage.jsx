@@ -146,24 +146,30 @@ const SeguimientoPage = () => {
 
   const formatAnalisisData = () => {
     if (!analisisData) return { chartData: [], visitas: [], chartDataSiNo: [], visitasSiNo: [] };
+    
+    // Debug - ver qué datos estamos recibiendo
+    console.log('Datos de análisis recibidos:', analisisData);
+    
     const result = {};
     const resultSiNo = {};
     const visitasMap = new Map(); // key → label visible
     const visitasSiNoMap = new Map();
 
     // Procesar preguntas con puntaje
-    analisisData.datos.forEach(row => {
-      if (!result[row.id_pregunta]) {
-        const nameTrunc = row.pregunta.length > 30 ? row.pregunta.substring(0, 30) + '...' : row.pregunta;
-        result[row.id_pregunta] = { name: nameTrunc, fullName: row.pregunta, categoria: row.categoria };
-      }
-      // Incluir el período en la clave para diferenciar bimestres
-      const visKey = row.periodo_nombre
-        ? `${row.periodo_nombre} - V${row.numero_visita}`
-        : `Visita ${row.numero_visita}`;
-      visitasMap.set(visKey, visKey);
-      result[row.id_pregunta][visKey] = parseFloat(row.promedio_puntaje);
-    });
+    if (analisisData.datos && analisisData.datos.length > 0) {
+      analisisData.datos.forEach(row => {
+        if (!result[row.id_pregunta]) {
+          const nameTrunc = row.pregunta.length > 30 ? row.pregunta.substring(0, 30) + '...' : row.pregunta;
+          result[row.id_pregunta] = { name: nameTrunc, fullName: row.pregunta, categoria: row.categoria };
+        }
+        // Incluir el período en la clave para diferenciar bimestres
+        const visKey = row.periodo_nombre
+          ? `${row.periodo_nombre} - V${row.numero_visita}`
+          : `Visita ${row.numero_visita}`;
+        visitasMap.set(visKey, visKey);
+        result[row.id_pregunta][visKey] = parseFloat(row.promedio_puntaje);
+      });
+    }
 
     // Procesar preguntas Sí/No
     if (analisisData.preguntasSiNo) {
@@ -189,6 +195,10 @@ const SeguimientoPage = () => {
         if (total > 0) {
           resultSiNo[row.id_pregunta][`${visKey}_Si`] = Math.round((totalSi / total) * 100);
           resultSiNo[row.id_pregunta][`${visKey}_No`] = Math.round((totalNo / total) * 100);
+        } else {
+          // Si no hay respuestas, asignar 0%
+          resultSiNo[row.id_pregunta][`${visKey}_Si`] = 0;
+          resultSiNo[row.id_pregunta][`${visKey}_No`] = 0;
         }
       });
     }
