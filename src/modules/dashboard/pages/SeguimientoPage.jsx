@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import React from 'react';
 import api from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import {
@@ -144,10 +145,13 @@ const SeguimientoPage = () => {
   }));
 
   const formatAnalisisData = () => {
-    if (!analisisData) return { chartData: [], visitas: [] };
+    if (!analisisData) return { chartData: [], visitas: [], chartDataSiNo: [], visitasSiNo: [] };
     const result = {};
+    const resultSiNo = {};
     const visitasMap = new Map(); // key → label visible
+    const visitasSiNoMap = new Map();
 
+    // Procesar preguntas con puntaje
     analisisData.datos.forEach(row => {
       if (!result[row.id_pregunta]) {
         const nameTrunc = row.pregunta.length > 30 ? row.pregunta.substring(0, 30) + '...' : row.pregunta;
@@ -161,9 +165,39 @@ const SeguimientoPage = () => {
       result[row.id_pregunta][visKey] = parseFloat(row.promedio_puntaje);
     });
 
+    // Procesar preguntas Sí/No
+    if (analisisData.preguntasSiNo) {
+      analisisData.preguntasSiNo.forEach(row => {
+        if (!resultSiNo[row.id_pregunta]) {
+          const nameTrunc = row.pregunta.length > 30 ? row.pregunta.substring(0, 30) + '...' : row.pregunta;
+          resultSiNo[row.id_pregunta] = { 
+            name: nameTrunc, 
+            fullName: row.pregunta, 
+            categoria: row.categoria 
+          };
+        }
+        const visKey = row.periodo_nombre
+          ? `${row.periodo_nombre} - V${row.numero_visita}`
+          : `Visita ${row.numero_visita}`;
+        visitasSiNoMap.set(visKey, visKey);
+        
+        // Calcular porcentajes para Sí/No
+        const totalSi = parseInt(row.total_si) || 0;
+        const totalNo = parseInt(row.total_no) || 0;
+        const total = totalSi + totalNo;
+        
+        if (total > 0) {
+          resultSiNo[row.id_pregunta][`${visKey}_Si`] = Math.round((totalSi / total) * 100);
+          resultSiNo[row.id_pregunta][`${visKey}_No`] = Math.round((totalNo / total) * 100);
+        }
+      });
+    }
+
     return {
       chartData: Object.values(result),
-      visitas: Array.from(visitasMap.keys())
+      visitas: Array.from(visitasMap.keys()),
+      chartDataSiNo: Object.values(resultSiNo),
+      visitasSiNo: Array.from(visitasSiNoMap.keys())
     };
   };
 
@@ -286,79 +320,153 @@ const SeguimientoPage = () => {
       ) : (
         <>
           {!selectedDocente && filters.id_ficha && (analisisData?.tipo === 'general' || user?.role === 'docente') && (
-            <div className="card fade-in" style={{ padding: '1.5rem', marginBottom: '1.5rem', minHeight: '300px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <BarChart2 color="var(--primary)" />
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>
-                  {user?.role === 'docente' ? 'Mi Análisis Histórico por Criterio' : 'Análisis Institucional por Criterio'}
-                </h3>
+            <>
+              <div className="card fade-in" style={{ padding: '1.5rem', marginBottom: '1.5rem', minHeight: '300px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <BarChart2 color="var(--primary)" />
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>
+                    {user?.role === 'docente' ? 'Mi Análisis Histórico por Criterio' : 'Análisis Institucional por Criterio'}
+                  </h3>
+                </div>
+                
+                {/* Leyenda de colores para tipos de monitoreo */}
+                {chartInfo.visitas.length > 0 && (
+                  <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '0.75rem', 
+                    marginBottom: '1.5rem',
+                    padding: '0.75rem', 
+                    backgroundColor: 'var(--background)', 
+                    borderRadius: '0.5rem',
+                    border: '1px solid var(--border)'
+                  }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginRight: '0.5rem' }}>
+                      Tipos de Monitoreo:
+                    </span>
+                    {chartInfo.visitas.map((visKey, index) => (
+                      <div key={visKey} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.35rem',
+                        fontSize: '0.7rem'
+                      }}>
+                        <div style={{ 
+                          width: '12px', 
+                          height: '12px', 
+                          backgroundColor: getColorForVisita(visKey, index),
+                          borderRadius: '2px'
+                        }} />
+                        <span style={{ fontWeight: '600' }}>{visKey}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {chartInfo.chartData.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Cargando datos del análisis...</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={chartInfo.chartData} margin={{ top: 20, right: 0, left: 0, bottom: 60 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-muted)' }} angle={-45} textAnchor="end" />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.8rem', maxWidth: '350px', whiteSpace: 'normal' }}
+                        labelFormatter={(label, data) => data[0]?.payload?.fullName || label}
+                        formatter={(value, name) => [
+                          `${value} pts`,
+                          name
+                        ]}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '0.85rem' }} />
+                      {chartInfo.visitas.map((visKey, index) => (
+                        <Bar 
+                          key={visKey} 
+                          dataKey={visKey} 
+                          fill={getColorForVisita(visKey, index)} 
+                          radius={[2, 2, 0, 0]} 
+                          maxBarSize={30}
+                          name={visKey}
+                        />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </div>
-              
-              {/* Leyenda de colores para tipos de monitoreo */}
-              {chartInfo.visitas.length > 0 && (
-                <div style={{ 
-                  display: 'flex', 
-                  flexWrap: 'wrap', 
-                  gap: '0.75rem', 
-                  marginBottom: '1.5rem',
-                  padding: '0.75rem', 
-                  backgroundColor: 'var(--background)', 
-                  borderRadius: '0.5rem',
-                  border: '1px solid var(--border)'
-                }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginRight: '0.5rem' }}>
-                    Tipos de Monitoreo:
-                  </span>
-                  {chartInfo.visitas.map((visKey, index) => (
-                    <div key={visKey} style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '0.35rem',
-                      fontSize: '0.7rem'
-                    }}>
-                      <div style={{ 
-                        width: '12px', 
-                        height: '12px', 
-                        backgroundColor: getColorForVisita(visKey, index),
-                        borderRadius: '2px'
-                      }} />
-                      <span style={{ fontWeight: '600' }}>{visKey}</span>
+
+              {/* Nueva sección para preguntas Sí/No */}
+              {chartInfo.chartDataSiNo.length > 0 && (
+                <div className="card fade-in" style={{ padding: '1.5rem', marginBottom: '1.5rem', minHeight: '300px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <BarChart2 color="var(--success)" />
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: 'var(--success)' }}>
+                      Preguntas de Respuesta Sí/No - Análisis de Cumplimiento
+                    </h3>
+                  </div>
+                  
+                  {/* Leyenda específica para Sí/No */}
+                  <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '1rem', 
+                    marginBottom: '1.5rem',
+                    padding: '0.75rem', 
+                    backgroundColor: 'var(--background)', 
+                    borderRadius: '0.5rem',
+                    border: '1px solid var(--border)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '12px', height: '12px', backgroundColor: '#10b981', borderRadius: '2px' }} />
+                      <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>Respuestas "Sí" (%)</span>
                     </div>
-                  ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '12px', height: '12px', backgroundColor: '#ef4444', borderRadius: '2px' }} />
+                      <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>Respuestas "No" (%)</span>
+                    </div>
+                  </div>
+
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={chartInfo.chartDataSiNo} margin={{ top: 20, right: 0, left: 0, bottom: 60 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-muted)' }} angle={-45} textAnchor="end" />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} domain={[0, 100]} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.8rem', maxWidth: '350px', whiteSpace: 'normal' }}
+                        labelFormatter={(label, data) => data[0]?.payload?.fullName || label}
+                        formatter={(value, name) => {
+                          const isNoResponse = name.includes('_No');
+                          const cleanName = name.replace(/_Si|_No/, '');
+                          const responseType = isNoResponse ? 'No' : 'Sí';
+                          return [`${value}%`, `${cleanName} - ${responseType}`];
+                        }}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '0.85rem' }} />
+                      {chartInfo.visitasSiNo.map((visKey) => (
+                        <React.Fragment key={visKey}>
+                          <Bar 
+                            dataKey={`${visKey}_Si`} 
+                            stackId={visKey}
+                            fill="#10b981" 
+                            radius={[2, 2, 0, 0]} 
+                            maxBarSize={30}
+                            name={`${visKey} - Sí`}
+                          />
+                          <Bar 
+                            dataKey={`${visKey}_No`} 
+                            stackId={visKey}
+                            fill="#ef4444" 
+                            radius={[2, 2, 0, 0]} 
+                            maxBarSize={30}
+                            name={`${visKey} - No`}
+                          />
+                        </React.Fragment>
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               )}
-
-              {chartInfo.chartData.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Cargando datos del análisis...</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={chartInfo.chartData} margin={{ top: 20, right: 0, left: 0, bottom: 60 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-muted)' }} angle={-45} textAnchor="end" />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.8rem', maxWidth: '350px', whiteSpace: 'normal' }}
-                      labelFormatter={(label, data) => data[0]?.payload?.fullName || label}
-                      formatter={(value, name) => [
-                        `${value} pts`,
-                        name
-                      ]}
-                    />
-                    <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '0.85rem' }} />
-                    {chartInfo.visitas.map((visKey, index) => (
-                      <Bar 
-                        key={visKey} 
-                        dataKey={visKey} 
-                        fill={getColorForVisita(visKey, index)} 
-                        radius={[2, 2, 0, 0]} 
-                        maxBarSize={30}
-                        name={visKey}
-                      />
-                    ))}
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+            </>
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: selectedDocente ? '1fr 1.6fr' : '1fr', gap: '1.5rem' }}>
@@ -526,74 +634,145 @@ const SeguimientoPage = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="card fade-in" style={{ padding: '1.5rem', minHeight: '300px' }}>
-                    <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: '700' }}>Comparación Histórica por Pregunta</h4>
-                    
-                    {/* Leyenda de colores para tipos de monitoreo */}
-                    {chartInfo.visitas.length > 0 && (
-                      <div style={{ 
-                        display: 'flex', 
-                        flexWrap: 'wrap', 
-                        gap: '0.75rem', 
-                        marginBottom: '1.5rem',
-                        padding: '0.75rem', 
-                        backgroundColor: 'var(--background)', 
-                        borderRadius: '0.5rem',
-                        border: '1px solid var(--border)'
-                      }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginRight: '0.5rem' }}>
-                          Tipos de Monitoreo:
-                        </span>
-                        {chartInfo.visitas.map((visKey, index) => (
-                          <div key={visKey} style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '0.35rem',
-                            fontSize: '0.7rem'
-                          }}>
-                            <div style={{ 
-                              width: '12px', 
-                              height: '12px', 
-                              backgroundColor: getColorForVisita(visKey, index),
-                              borderRadius: '2px'
-                            }} />
-                            <span style={{ fontWeight: '600' }}>{visKey}</span>
+                  <>
+                    <div className="card fade-in" style={{ padding: '1.5rem', minHeight: '300px', marginBottom: '1.5rem' }}>
+                      <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: '700' }}>Comparación Histórica por Pregunta</h4>
+                      
+                      {/* Leyenda de colores para tipos de monitoreo */}
+                      {chartInfo.visitas.length > 0 && (
+                        <div style={{ 
+                          display: 'flex', 
+                          flexWrap: 'wrap', 
+                          gap: '0.75rem', 
+                          marginBottom: '1.5rem',
+                          padding: '0.75rem', 
+                          backgroundColor: 'var(--background)', 
+                          borderRadius: '0.5rem',
+                          border: '1px solid var(--border)'
+                        }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginRight: '0.5rem' }}>
+                            Tipos de Monitoreo:
+                          </span>
+                          {chartInfo.visitas.map((visKey, index) => (
+                            <div key={visKey} style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '0.35rem',
+                              fontSize: '0.7rem'
+                            }}>
+                              <div style={{ 
+                                width: '12px', 
+                                height: '12px', 
+                                backgroundColor: getColorForVisita(visKey, index),
+                                borderRadius: '2px'
+                              }} />
+                              <span style={{ fontWeight: '600' }}>{visKey}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {!analisisData || chartInfo.chartData.length === 0 ? (
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Cargando datos del análisis...</p>
+                      ) : (
+                        <ResponsiveContainer width="100%" height={400}>
+                          <BarChart data={chartInfo.chartData} margin={{ top: 20, right: 0, left: 0, bottom: 60 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-muted)' }} angle={-45} textAnchor="end" />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.8rem', maxWidth: '350px', whiteSpace: 'normal' }}
+                              labelFormatter={(label, data) => data[0]?.payload?.fullName || label}
+                              formatter={(value, name) => [
+                                `${value} pts`,
+                                name
+                              ]}
+                            />
+                            <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '0.85rem' }} />
+                            {chartInfo.visitas.map((visKey, index) => (
+                              <Bar 
+                                key={visKey} 
+                                dataKey={visKey} 
+                                fill={getColorForVisita(visKey, index)} 
+                                radius={[2, 2, 0, 0]} 
+                                maxBarSize={30}
+                                name={visKey}
+                              />
+                            ))}
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+
+                    {/* Sección de preguntas Sí/No para vista individual */}
+                    {chartInfo.chartDataSiNo.length > 0 && (
+                      <div className="card fade-in" style={{ padding: '1.5rem', minHeight: '300px' }}>
+                        <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: '700', color: 'var(--success)' }}>
+                          Preguntas Sí/No - Análisis de Cumplimiento Individual
+                        </h4>
+                        
+                        {/* Leyenda específica para Sí/No */}
+                        <div style={{ 
+                          display: 'flex', 
+                          flexWrap: 'wrap', 
+                          gap: '1rem', 
+                          marginBottom: '1.5rem',
+                          padding: '0.75rem', 
+                          backgroundColor: 'var(--background)', 
+                          borderRadius: '0.5rem',
+                          border: '1px solid var(--border)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ width: '12px', height: '12px', backgroundColor: '#10b981', borderRadius: '2px' }} />
+                            <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>Respuestas "Sí" (%)</span>
                           </div>
-                        ))}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ width: '12px', height: '12px', backgroundColor: '#ef4444', borderRadius: '2px' }} />
+                            <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>Respuestas "No" (%)</span>
+                          </div>
+                        </div>
+
+                        <ResponsiveContainer width="100%" height={400}>
+                          <BarChart data={chartInfo.chartDataSiNo} margin={{ top: 20, right: 0, left: 0, bottom: 60 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-muted)' }} angle={-45} textAnchor="end" />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} domain={[0, 100]} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.8rem', maxWidth: '350px', whiteSpace: 'normal' }}
+                              labelFormatter={(label, data) => data[0]?.payload?.fullName || label}
+                              formatter={(value, name) => {
+                                const isNoResponse = name.includes('_No');
+                                const cleanName = name.replace(/_Si|_No/, '');
+                                const responseType = isNoResponse ? 'No' : 'Sí';
+                                return [`${value}%`, `${cleanName} - ${responseType}`];
+                              }}
+                            />
+                            <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '0.85rem' }} />
+                            {chartInfo.visitasSiNo.map((visKey) => (
+                              <React.Fragment key={visKey}>
+                                <Bar 
+                                  dataKey={`${visKey}_Si`} 
+                                  stackId={visKey}
+                                  fill="#10b981" 
+                                  radius={[2, 2, 0, 0]} 
+                                  maxBarSize={30}
+                                  name={`${visKey} - Sí`}
+                                />
+                                <Bar 
+                                  dataKey={`${visKey}_No`} 
+                                  stackId={visKey}
+                                  fill="#ef4444" 
+                                  radius={[2, 2, 0, 0]} 
+                                  maxBarSize={30}
+                                  name={`${visKey} - No`}
+                                />
+                              </React.Fragment>
+                            ))}
+                          </BarChart>
+                        </ResponsiveContainer>
                       </div>
                     )}
-
-                    {!analisisData || chartInfo.chartData.length === 0 ? (
-                      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Cargando datos del análisis...</p>
-                    ) : (
-                      <ResponsiveContainer width="100%" height={400}>
-                        <BarChart data={chartInfo.chartData} margin={{ top: 20, right: 0, left: 0, bottom: 60 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-muted)' }} angle={-45} textAnchor="end" />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
-                          <Tooltip
-                            contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.8rem', maxWidth: '350px', whiteSpace: 'normal' }}
-                            labelFormatter={(label, data) => data[0]?.payload?.fullName || label}
-                            formatter={(value, name) => [
-                              `${value} pts`,
-                              name
-                            ]}
-                          />
-                          <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '0.85rem' }} />
-                          {chartInfo.visitas.map((visKey, index) => (
-                            <Bar 
-                              key={visKey} 
-                              dataKey={visKey} 
-                              fill={getColorForVisita(visKey, index)} 
-                              radius={[2, 2, 0, 0]} 
-                              maxBarSize={30}
-                              name={visKey}
-                            />
-                          ))}
-                        </BarChart>
-                      </ResponsiveContainer>
-                    )}
-                  </div>
+                  </>
                 )}
               </div>
             )}
