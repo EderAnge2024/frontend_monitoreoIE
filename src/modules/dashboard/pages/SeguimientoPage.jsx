@@ -147,9 +147,6 @@ const SeguimientoPage = () => {
   const formatAnalisisData = () => {
     if (!analisisData) return { chartData: [], visitas: [], chartDataSiNo: [], visitasSiNo: [] };
     
-    // Debug - ver qué datos estamos recibiendo
-    console.log('Datos de análisis recibidos:', analisisData);
-    
     const result = {};
     const resultSiNo = {};
     const visitasMap = new Map(); // key → label visible
