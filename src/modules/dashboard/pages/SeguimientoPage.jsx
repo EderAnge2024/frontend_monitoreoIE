@@ -116,8 +116,14 @@ const SeguimientoPage = () => {
       const a = document.createElement('a');
       a.href = url;
       a.download = `Seguimiento_Docentes_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+      // Usar setTimeout para asegurar que el click se procesó antes de limpiar
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 100);
     } catch (err) {
       console.error('Error al exportar:', err);
       alert('Error al generar el archivo Excel. Intente nuevamente.');
@@ -140,26 +146,55 @@ const SeguimientoPage = () => {
   const formatAnalisisData = () => {
     if (!analisisData) return { chartData: [], visitas: [] };
     const result = {};
-    const visitasSet = new Set();
-    
+    const visitasMap = new Map(); // key → label visible
+
     analisisData.datos.forEach(row => {
       if (!result[row.id_pregunta]) {
         const nameTrunc = row.pregunta.length > 30 ? row.pregunta.substring(0, 30) + '...' : row.pregunta;
         result[row.id_pregunta] = { name: nameTrunc, fullName: row.pregunta, categoria: row.categoria };
       }
-      const visKey = `Visita ${row.numero_visita}`;
-      visitasSet.add(visKey);
+      // Incluir el período en la clave para diferenciar bimestres
+      const visKey = row.periodo_nombre
+        ? `${row.periodo_nombre} - V${row.numero_visita}`
+        : `Visita ${row.numero_visita}`;
+      visitasMap.set(visKey, visKey);
       result[row.id_pregunta][visKey] = parseFloat(row.promedio_puntaje);
     });
-    
+
     return {
       chartData: Object.values(result),
-      visitas: Array.from(visitasSet).sort()
+      visitas: Array.from(visitasMap.keys())
     };
   };
 
   const chartInfo = formatAnalisisData();
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#f43f5e'];
+
+  // Paleta diferenciada: un color único por cada tipo de monitoreo/período
+  const MONITOREO_COLORS = [
+    '#2563eb', // Azul fuerte — Diagnóstico inicial
+    '#10b981', // Verde esmeralda — Primer seguimiento  
+    '#f59e0b', // Ámbar — Segundo seguimiento
+    '#8b5cf6', // Violeta — Tercer seguimiento
+    '#ef4444', // Rojo — Evaluación final
+    '#06b6d4', // Cian — Monitoreo adicional
+    '#f97316', // Naranja — Refuerzo
+    '#84cc16', // Lima — Mejora continua
+    '#ec4899', // Rosa — Evaluación especial
+    '#6366f1', // Índigo — Monitoreo integral
+  ];
+
+  // Función para obtener color basado en el tipo de visita o período
+  const getColorForVisita = (visitaLabel, index) => {
+    // Priorizar por tipo de monitoreo si está en el label
+    if (visitaLabel.toLowerCase().includes('diagnóstico') || visitaLabel.toLowerCase().includes('inicial')) return MONITOREO_COLORS[0];
+    if (visitaLabel.toLowerCase().includes('1er') || visitaLabel.toLowerCase().includes('primer')) return MONITOREO_COLORS[1];
+    if (visitaLabel.toLowerCase().includes('2do') || visitaLabel.toLowerCase().includes('segundo')) return MONITOREO_COLORS[2];
+    if (visitaLabel.toLowerCase().includes('3er') || visitaLabel.toLowerCase().includes('tercer')) return MONITOREO_COLORS[3];
+    if (visitaLabel.toLowerCase().includes('4to') || visitaLabel.toLowerCase().includes('final')) return MONITOREO_COLORS[4];
+    
+    // Si no hay coincidencia, usar índice rotativo
+    return MONITOREO_COLORS[index % MONITOREO_COLORS.length];
+  };
 
   return (
     <div className="fade-in" style={{ paddingBottom: '3rem' }}>
@@ -252,12 +287,47 @@ const SeguimientoPage = () => {
         <>
           {!selectedDocente && filters.id_ficha && (analisisData?.tipo === 'general' || user?.role === 'docente') && (
             <div className="card fade-in" style={{ padding: '1.5rem', marginBottom: '1.5rem', minHeight: '300px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <BarChart2 color="var(--primary)" />
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>
                   {user?.role === 'docente' ? 'Mi Análisis Histórico por Criterio' : 'Análisis Institucional por Criterio'}
                 </h3>
               </div>
+              
+              {/* Leyenda de colores para tipos de monitoreo */}
+              {chartInfo.visitas.length > 0 && (
+                <div style={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: '0.75rem', 
+                  marginBottom: '1.5rem',
+                  padding: '0.75rem', 
+                  backgroundColor: 'var(--background)', 
+                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border)'
+                }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginRight: '0.5rem' }}>
+                    Tipos de Monitoreo:
+                  </span>
+                  {chartInfo.visitas.map((visKey, index) => (
+                    <div key={visKey} style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.35rem',
+                      fontSize: '0.7rem'
+                    }}>
+                      <div style={{ 
+                        width: '12px', 
+                        height: '12px', 
+                        backgroundColor: getColorForVisita(visKey, index),
+                        borderRadius: '2px'
+                      }} />
+                      <span style={{ fontWeight: '600' }}>{visKey}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {chartInfo.chartData.length === 0 ? (
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Cargando datos del análisis...</p>
               ) : (
@@ -269,10 +339,21 @@ const SeguimientoPage = () => {
                     <Tooltip
                       contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.8rem', maxWidth: '350px', whiteSpace: 'normal' }}
                       labelFormatter={(label, data) => data[0]?.payload?.fullName || label}
+                      formatter={(value, name) => [
+                        `${value} pts`,
+                        name
+                      ]}
                     />
                     <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '0.85rem' }} />
                     {chartInfo.visitas.map((visKey, index) => (
-                      <Bar key={visKey} dataKey={visKey} fill={COLORS[index % COLORS.length]} radius={[2, 2, 0, 0]} maxBarSize={30} />
+                      <Bar 
+                        key={visKey} 
+                        dataKey={visKey} 
+                        fill={getColorForVisita(visKey, index)} 
+                        radius={[2, 2, 0, 0]} 
+                        maxBarSize={30}
+                        name={visKey}
+                      />
                     ))}
                   </BarChart>
                 </ResponsiveContainer>
@@ -379,22 +460,43 @@ const SeguimientoPage = () => {
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                           <XAxis dataKey="numero" axisLine={false} tickLine={false}
                             tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
-                            tickFormatter={v => `Visita ${v}`} />
+                            tickFormatter={v => `V${v}`} />
                           <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
                           <Tooltip
                             contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.75rem' }}
-                            formatter={(val, _, props) => [
+                            formatter={(val, name, props) => [
                               `${val} pts — ${props.payload.nivel}`,
-                              props.payload.fecha
+                              `${props.payload.instrumento} (${props.payload.fecha})`
                             ]}
+                            labelFormatter={(label) => `Visita ${label}`}
                           />
+                          <Legend wrapperStyle={{ paddingTop: '10px', fontSize: '0.75rem' }} />
                           {nivelLines.map((nl, i) => (
                             <ReferenceLine key={i} y={nl.y} stroke={nl.color} strokeDasharray="4 3" strokeWidth={1.5}
                               label={{ value: nl.label, position: 'insideTopRight', fontSize: 9, fill: nl.color }} />
                           ))}
-                          <Line type="monotone" dataKey="puntaje" stroke="var(--primary)" strokeWidth={3}
-                            dot={{ r: 5, fill: 'var(--primary)', stroke: 'white', strokeWidth: 2 }}
-                            activeDot={{ r: 7 }} />
+                          <Line 
+                            type="monotone" 
+                            dataKey="puntaje" 
+                            stroke="var(--primary)" 
+                            strokeWidth={3}
+                            dot={(props) => {
+                              const { cx, cy, payload } = props;
+                              const color = getColorForVisita(payload.instrumento || 'general', payload.numero || 0);
+                              return (
+                                <circle 
+                                  cx={cx} 
+                                  cy={cy} 
+                                  r={6} 
+                                  fill={color} 
+                                  stroke="white" 
+                                  strokeWidth={2}
+                                />
+                              );
+                            }}
+                            activeDot={{ r: 8, stroke: 'var(--primary)', strokeWidth: 2 }}
+                            name="Puntaje"
+                          />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -426,6 +528,41 @@ const SeguimientoPage = () => {
                 ) : (
                   <div className="card fade-in" style={{ padding: '1.5rem', minHeight: '300px' }}>
                     <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: '700' }}>Comparación Histórica por Pregunta</h4>
+                    
+                    {/* Leyenda de colores para tipos de monitoreo */}
+                    {chartInfo.visitas.length > 0 && (
+                      <div style={{ 
+                        display: 'flex', 
+                        flexWrap: 'wrap', 
+                        gap: '0.75rem', 
+                        marginBottom: '1.5rem',
+                        padding: '0.75rem', 
+                        backgroundColor: 'var(--background)', 
+                        borderRadius: '0.5rem',
+                        border: '1px solid var(--border)'
+                      }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginRight: '0.5rem' }}>
+                          Tipos de Monitoreo:
+                        </span>
+                        {chartInfo.visitas.map((visKey, index) => (
+                          <div key={visKey} style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.35rem',
+                            fontSize: '0.7rem'
+                          }}>
+                            <div style={{ 
+                              width: '12px', 
+                              height: '12px', 
+                              backgroundColor: getColorForVisita(visKey, index),
+                              borderRadius: '2px'
+                            }} />
+                            <span style={{ fontWeight: '600' }}>{visKey}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {!analisisData || chartInfo.chartData.length === 0 ? (
                       <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Cargando datos del análisis...</p>
                     ) : (
@@ -437,10 +574,21 @@ const SeguimientoPage = () => {
                           <Tooltip
                             contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '0.5rem', fontSize: '0.8rem', maxWidth: '350px', whiteSpace: 'normal' }}
                             labelFormatter={(label, data) => data[0]?.payload?.fullName || label}
+                            formatter={(value, name) => [
+                              `${value} pts`,
+                              name
+                            ]}
                           />
                           <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '0.85rem' }} />
                           {chartInfo.visitas.map((visKey, index) => (
-                            <Bar key={visKey} dataKey={visKey} fill={COLORS[index % COLORS.length]} radius={[2, 2, 0, 0]} maxBarSize={30} />
+                            <Bar 
+                              key={visKey} 
+                              dataKey={visKey} 
+                              fill={getColorForVisita(visKey, index)} 
+                              radius={[2, 2, 0, 0]} 
+                              maxBarSize={30}
+                              name={visKey}
+                            />
                           ))}
                         </BarChart>
                       </ResponsiveContainer>

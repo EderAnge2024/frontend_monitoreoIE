@@ -86,10 +86,13 @@ const ReportesPage = () => {
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `Reporte_Monitoreos_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
     } catch (err) {
       console.error('Error al exportar:', err);
       alert('Error al generar el archivo Excel');
