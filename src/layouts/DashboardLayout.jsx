@@ -21,7 +21,9 @@ import {
   Moon,
   Target,
   FolderOpen,
-  TrendingUp
+  TrendingUp,
+  Clock,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 
 
@@ -76,9 +78,12 @@ const DashboardLayout = ({ children }) => {
     { name: 'Fichas y Preguntas', icon: <Settings size={20} />, path: '/configuracion-fichas', roles: ['administrador'] },
     { name: 'FUTs Institucionales', icon: <FileText size={20} />, path: '/futs', roles: ['administrador', 'director'] },
     { name: 'Niveles de Desempeño', icon: <Target size={20} />, path: '/niveles-desempeno', roles: ['administrador'] },
+    { name: 'Eventos Institucionales', icon: <CalendarIcon size={20} />, path: '/eventos', roles: ['administrador', 'director'] },
     { name: 'Realizar Monitoreo', icon: <ClipboardCheck size={20} />, path: '/monitoreo/nuevo', roles: ['administrador', 'director', 'especialista'] },
     { name: 'Historial Monitoreos', icon: <ClipboardList size={20} />, path: '/monitoreo/historial', roles: ['administrador', 'director', 'especialista'] },
     { name: 'Mis Monitoreos', icon: <FileText size={20} />, path: '/mis-monitoreos', roles: ['docente'] },
+    { name: 'Mi Asistencia', icon: <Clock size={20} />, path: '/asistencia', roles: ['docente'] },
+    { name: 'Mis Eventos', icon: <CalendarIcon size={20} />, path: '/mis-eventos', roles: ['docente'] },
     { name: 'Trámites / Solicitudes', icon: <FileText size={20} />, path: '/solicitudes', roles: ['administrador', 'director', 'docente'] },
     { name: 'Gestión Documental', icon: <FolderOpen size={20} />, path: '/gestion-documental', roles: ['administrador', 'director', 'docente'] },
     { name: 'Reportes y Estadísticas', icon: <BarChart3 size={20} />, path: '/reportes', roles: ['administrador', 'director', 'especialista'] },

@@ -21,6 +21,9 @@ import FutsPage from '../modules/dashboard/pages/FutsPage';
 import SolicitudesPage from '../modules/dashboard/pages/SolicitudesPage';
 import ProfilePage from '../modules/dashboard/pages/ProfilePage';
 import GestionDocumentalPage from '../modules/dashboard/pages/GestionDocumentalPage';
+import AsistenciaPage from '../modules/dashboard/pages/AsistenciaPage';
+import EventosPage from '../modules/dashboard/pages/EventosPage';
+import MisEventosPage from '../modules/dashboard/pages/MisEventosPage';
 
 const ProtectedRoute = ({ children, roles = [] }) => {
   const { user, loading } = useAuth();
@@ -82,9 +85,12 @@ const AppRoutes = () => {
       <Route path="/seguimiento" element={<ProtectedRoute roles={['administrador', 'director', 'especialista', 'docente']}><SeguimientoPage /></ProtectedRoute>} />
       <Route path="/solicitudes" element={<ProtectedRoute roles={['administrador', 'director', 'docente']}><SolicitudesPage /></ProtectedRoute>} />
       <Route path="/gestion-documental" element={<ProtectedRoute roles={['administrador', 'director', 'docente']}><GestionDocumentalPage /></ProtectedRoute>} />
+      <Route path="/eventos" element={<ProtectedRoute roles={['administrador', 'director']}><EventosPage /></ProtectedRoute>} />
 
       {/* Teacher Modules */}
       <Route path="/mis-monitoreos" element={<ProtectedRoute roles={['docente']}><MisMonitoreosPage /></ProtectedRoute>} />
+      <Route path="/asistencia" element={<ProtectedRoute roles={['docente']}><AsistenciaPage /></ProtectedRoute>} />
+      <Route path="/mis-eventos" element={<ProtectedRoute roles={['docente']}><MisEventosPage /></ProtectedRoute>} />
 
       {/* Profile */}
       <Route path="/perfil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
