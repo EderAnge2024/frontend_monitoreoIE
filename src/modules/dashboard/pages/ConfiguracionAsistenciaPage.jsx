@@ -75,8 +75,8 @@ const ConfiguracionAsistenciaPage = () => {
     setObteniendoUbicacion(true);
     
     try {
-      console.log('📍 Obteniendo ubicación actual automáticamente...');
-      const location = await locationDetector.getCurrentLocation('accuracy');
+      console.log('🛰️ Obteniendo ubicación GPS real de la institución...');
+      const location = await locationDetector.getCurrentLocation('highAccuracy');
       
       setConfig(prev => ({
         ...prev,
@@ -84,10 +84,10 @@ const ConfiguracionAsistenciaPage = () => {
         longitud_ie: location.longitud.toFixed(8)
       }));
       
-      setMensaje(`Ubicación obtenida exitosamente (Precisión: ${Math.round(location.precision)}m)`);
+      setMensaje(`Ubicación GPS real obtenida exitosamente (Precisión: ${Math.round(location.precision)}m)`);
     } catch (error) {
-      console.error('Error obteniendo ubicación:', error);
-      setError('Error obteniendo ubicación: ' + error.message);
+      console.error('Error obteniendo GPS real:', error);
+      setError('GPS requerido: ' + error.message + '\n\nPara configurar la ubicación de la institución necesita activar el GPS y estar físicamente en las instalaciones de la institución.');
     } finally {
       setObteniendoUbicacion(false);
     }
@@ -278,7 +278,14 @@ const ConfiguracionAsistenciaPage = () => {
         <div className="bg-white rounded-lg shadow-md p-6 border">
           <div className="flex items-center gap-2 mb-4">
             <Wifi className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-semibold text-gray-800">Red WiFi Institucional</h2>
+            <h2 className="text-lg font-semibold text-gray-800">Red WiFi Institucional (Opcional)</h2>
+          </div>
+          
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-yellow-800">
+              <strong>Nota:</strong> La validación WiFi es opcional y complementaria. 
+              El GPS es la validación principal para registro de asistencia.
+            </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -335,11 +342,11 @@ const ConfiguracionAsistenciaPage = () => {
                 className="mr-2"
               />
               <span className="text-sm font-medium text-gray-700">
-                Validar red WiFi institucional
+                Validar red WiFi institucional (opcional)
               </span>
             </label>
             <p className="text-xs text-gray-500 mt-1">
-              Si está habilitado, se verificará la conexión a la red institucional
+              Si está habilitado, registrará información de WiFi pero NO bloqueará el registro si no coincide
             </p>
           </div>
         </div>

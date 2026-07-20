@@ -51,10 +51,10 @@ const AsistenciaPage = () => {
     }
   };
 
-  // Obtener ubicación GPS automáticamente (mejorado)
+  // Obtener ubicación GPS automáticamente (SOLO GPS REAL)
   const obtenerUbicacion = async (priority = 'balanced') => {
     try {
-      console.log('📍 Obteniendo ubicación automáticamente...');
+      console.log('🛰️ Obteniendo ubicación GPS real del dispositivo...');
       const location = await locationDetector.getCurrentLocation(priority);
       
       const coords = {
@@ -63,43 +63,48 @@ const AsistenciaPage = () => {
       };
       
       setUbicacion(coords);
-      console.log('✅ Ubicación obtenida:', {
+      console.log('✅ GPS real obtenido:', {
         coords,
-        precision: location.precision,
+        precision: Math.round(location.precision) + 'm',
         method: location.method
       });
       
       return coords;
     } catch (error) {
-      console.error('❌ Error obteniendo ubicación:', error);
-      throw new Error('No se pudo obtener la ubicación: ' + error.message);
+      console.error('❌ Error obteniendo GPS real:', error);
+      
+      // Mostrar error específico al usuario
+      const errorMessage = `GPS requerido: ${error.message}`;
+      throw new Error(errorMessage);
     }
   };
 
-  // Detectar WiFi automáticamente (mejorado)
+  // Detectar WiFi (informativo solamente - no crítico)
   const detectarWifi = async () => {
     try {
+      console.log('📶 Intentando detectar información de WiFi...');
       const wifiInfo = await wifiDetector.detectWiFi();
       const wifiData = {
-        wifi_ssid: wifiInfo.wifi_ssid,
+        wifi_ssid: wifiInfo.wifi_ssid || 'No detectado',
         wifi_bssid: wifiInfo.wifi_bssid
       };
       setWifi(wifiData);
       
-      console.log('WiFi detectado:', {
+      console.log('📶 WiFi detectado (informativo):', {
         ssid: wifiInfo.wifi_ssid,
-        method: wifiInfo.detection_method,
-        type: wifiInfo.connection_type
+        method: wifiInfo.detection_method
       });
       
       return wifiData;
     } catch (error) {
-      console.warn('Error detectando WiFi:', error);
-      // Fallback a simulación básica
-      return {
-        wifi_ssid: 'WIFI_DETECTADO',
+      console.warn('⚠️ No se pudo detectar WiFi (no crítico):', error);
+      // WiFi falla - continuar sin problema
+      const fallbackData = {
+        wifi_ssid: 'No detectado',
         wifi_bssid: null
       };
+      setWifi(fallbackData);
+      return fallbackData;
     }
   };
 
@@ -112,13 +117,16 @@ const AsistenciaPage = () => {
 
       console.log('🚀 Iniciando registro de ingreso automático...');
 
-      // Obtener ubicación GPS automáticamente (rápido para UX)
+      // 1. PRIMERO: Obtener ubicación GPS (CRÍTICO)
       const coords = await obtenerUbicacion('balanced');
       
-      // Detectar WiFi automáticamente en paralelo
+      // 2. SEGUNDO: Intentar detectar WiFi (OPCIONAL)
       const wifiData = await detectarWifi();
 
-      console.log('📊 Datos recopilados:', { coords, wifiData });
+      console.log('📊 Datos recopilados:', { 
+        gps: coords, 
+        wifi: wifiData.wifi_ssid 
+      });
 
       // Enviar registro
       const response = await api.post('/asistencias/ingreso', {
@@ -131,7 +139,16 @@ const AsistenciaPage = () => {
 
     } catch (error) {
       console.error('❌ Error registrando ingreso:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Error registrando ingreso';
+      
+      // Mensajes de error más específicos
+      let errorMsg = 'Error registrando ingreso';
+      
+      if (error.message.includes('GPS') || error.message.includes('ubicación') || error.message.includes('geolocalización')) {
+        errorMsg = error.message;
+      } else if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      }
+      
       setError(errorMsg);
     } finally {
       setProcesando(false);
@@ -296,7 +313,7 @@ const AsistenciaPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center">
                   <MapPin className="w-4 h-4 text-green-500 mr-2" />
-                  <span className="text-sm">✓ GPS Validado</span>
+                  <span className="text-sm">✓ GPS Validado (Principal)</span>
                   {asistencia.distancia_ingreso_metros && (
                     <span className="text-xs text-gray-500 ml-2">
                       ({asistencia.distancia_ingreso_metros}m)
@@ -304,9 +321,11 @@ const AsistenciaPage = () => {
                   )}
                 </div>
                 <div className="flex items-center">
-                  <Wifi className="w-4 h-4 text-green-500 mr-2" />
+                  <Wifi className="w-4 h-4 text-blue-500 mr-2" />
                   <span className="text-sm">
-                    {asistencia.wifi_ingreso ? '✓ WiFi Detectado' : '⚠ WiFi No Detectado'}
+                    {asistencia.wifi_ingreso && asistencia.wifi_ingreso !== 'No detectado' 
+                      ? `📶 ${asistencia.wifi_ingreso}` 
+                      : '📶 WiFi: Informativo'}
                   </span>
                 </div>
               </div>
@@ -363,11 +382,11 @@ const AsistenciaPage = () => {
           <div className="text-sm">
             <p className="font-medium text-blue-800 mb-1">Información Importante:</p>
             <ul className="text-blue-700 space-y-1">
-              <li>• Solo puede registrar ingreso y salida una vez por día</li>
+              <li>• <strong>GPS es obligatorio</strong> - Debe estar activado y con buena señal</li>
+              <li>• WiFi es informativo - No bloquea el registro si no se detecta</li>
+              <li>• Un solo registro de ingreso y salida por día</li>
               <li>• Debe encontrarse dentro del perímetro de la institución</li>
-              <li>• El sistema validará automáticamente su ubicación GPS</li>
               <li>• El registro fuera del horario se marcará como tardanza</li>
-              <li>• Mantenga activada la ubicación en su dispositivo</li>
             </ul>
           </div>
         </div>

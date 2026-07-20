@@ -44,18 +44,18 @@ const MisEventosPage = () => {
     }
   };
 
-  // Detectar WiFi automáticamente (mejorado)
+  // Detectar WiFi (informativo solamente)
   const detectarWifi = async () => {
     try {
       const wifiInfo = await wifiDetector.detectWiFi();
       return {
-        wifi_ssid: wifiInfo.wifi_ssid,
+        wifi_ssid: wifiInfo.wifi_ssid || 'No detectado',
         wifi_bssid: wifiInfo.wifi_bssid
       };
     } catch (error) {
-      console.warn('Error detectando WiFi:', error);
+      console.warn('WiFi no detectado (continuando sin problema)');
       return {
-        wifi_ssid: 'WIFI_DETECTADO',
+        wifi_ssid: 'No detectado',
         wifi_bssid: null
       };
     }
