@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '../services/api';
+import locationDetector from '../utils/locationDetector';
 
 const AuthContext = createContext();
 
@@ -26,6 +27,13 @@ export const AuthProvider = ({ children }) => {
       try {
         const response = await api.get('/auth/me');
         setUser(response.data.user);
+        
+        // Pre-cargar ubicación para docentes
+        if (response.data.user.role === 'docente') {
+          console.log('👨‍🏫 Usuario docente detectado, pre-cargando ubicación...');
+          locationDetector.preloadLocation();
+        }
+        
       } catch (error) {
         // Si falla (ej. 401 o token inválido), el usuario no está autenticado
         localStorage.removeItem('token');

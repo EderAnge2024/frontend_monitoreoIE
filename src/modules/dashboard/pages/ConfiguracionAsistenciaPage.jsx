@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Wifi, Clock, Save, AlertCircle, CheckCircle, Settings } from 'lucide-react';
 import api from '../../../services/api';
+import wifiDetector from '../../../utils/wifiDetector';
+import locationDetector from '../../../utils/locationDetector';
 
 const ConfiguracionAsistenciaPage = () => {
   const [config, setConfig] = useState({
@@ -22,6 +24,7 @@ const ConfiguracionAsistenciaPage = () => {
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [obteniendoUbicacion, setObteniendoUbicacion] = useState(false);
+  const [detectandoWifi, setDetectandoWifi] = useState(false);
 
   // Cargar configuración existente
   useEffect(() => {
@@ -68,35 +71,50 @@ const ConfiguracionAsistenciaPage = () => {
     }));
   };
 
-  const obtenerUbicacionActual = () => {
+  const obtenerUbicacionActual = async () => {
     setObteniendoUbicacion(true);
     
-    if (!navigator.geolocation) {
-      setError('Geolocalización no soportada en este navegador');
+    try {
+      console.log('📍 Obteniendo ubicación actual automáticamente...');
+      const location = await locationDetector.getCurrentLocation('accuracy');
+      
+      setConfig(prev => ({
+        ...prev,
+        latitud_ie: location.latitud.toFixed(8),
+        longitud_ie: location.longitud.toFixed(8)
+      }));
+      
+      setMensaje(`Ubicación obtenida exitosamente (Precisión: ${Math.round(location.precision)}m)`);
+    } catch (error) {
+      console.error('Error obteniendo ubicación:', error);
+      setError('Error obteniendo ubicación: ' + error.message);
+    } finally {
       setObteniendoUbicacion(false);
-      return;
     }
+  };
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
+  const detectarWifiAutomaticamente = async () => {
+    setDetectandoWifi(true);
+    
+    try {
+      const wifiInfo = await wifiDetector.detectWiFi();
+      
+      if (wifiInfo.wifi_ssid) {
         setConfig(prev => ({
           ...prev,
-          latitud_ie: position.coords.latitude.toFixed(8),
-          longitud_ie: position.coords.longitude.toFixed(8)
+          wifi_nombre: wifiInfo.wifi_ssid,
+          wifi_bssid: wifiInfo.wifi_bssid || ''
         }));
-        setMensaje('Ubicación obtenida exitosamente');
-        setObteniendoUbicacion(false);
-      },
-      (error) => {
-        setError('Error obteniendo ubicación: ' + error.message);
-        setObteniendoUbicacion(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
+        
+        setMensaje(`WiFi detectado: ${wifiInfo.wifi_ssid} (Método: ${wifiInfo.detection_method})`);
+      } else {
+        setError('No se pudo detectar información de WiFi automáticamente');
       }
-    );
+    } catch (error) {
+      setError('Error detectando WiFi: ' + error.message);
+    } finally {
+      setDetectandoWifi(false);
+    }
   };
 
   const guardarConfiguracion = async (e) => {
@@ -290,6 +308,21 @@ const ConfiguracionAsistenciaPage = () => {
                 placeholder="00:11:22:33:44:55"
               />
             </div>
+          </div>
+
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={detectarWifiAutomaticamente}
+              disabled={detectandoWifi}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              <Wifi className="w-4 h-4" />
+              {detectandoWifi ? 'Detectando...' : 'Detectar WiFi Automáticamente'}
+            </button>
+            <p className="text-xs text-gray-500 mt-2">
+              Intenta detectar automáticamente la red WiFi actual del dispositivo
+            </p>
           </div>
 
           <div>

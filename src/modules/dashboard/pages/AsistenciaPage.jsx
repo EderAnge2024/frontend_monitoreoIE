@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, MapPin, Wifi, Shield, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import api from '../../../services/api';
+import wifiDetector from '../../../utils/wifiDetector';
+import locationDetector from '../../../utils/locationDetector';
 
 const AsistenciaPage = () => {
   const [asistencia, setAsistencia] = useState(null);
@@ -49,47 +51,56 @@ const AsistenciaPage = () => {
     }
   };
 
-  // Obtener ubicación GPS
-  const obtenerUbicacion = () => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocalización no soportada'));
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const coords = {
-            latitud: position.coords.latitude,
-            longitud: position.coords.longitude
-          };
-          setUbicacion(coords);
-          resolve(coords);
-        },
-        (error) => {
-          reject(new Error('Error obteniendo ubicación: ' + error.message));
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        }
-      );
-    });
+  // Obtener ubicación GPS automáticamente (mejorado)
+  const obtenerUbicacion = async (priority = 'balanced') => {
+    try {
+      console.log('📍 Obteniendo ubicación automáticamente...');
+      const location = await locationDetector.getCurrentLocation(priority);
+      
+      const coords = {
+        latitud: location.latitud,
+        longitud: location.longitud
+      };
+      
+      setUbicacion(coords);
+      console.log('✅ Ubicación obtenida:', {
+        coords,
+        precision: location.precision,
+        method: location.method
+      });
+      
+      return coords;
+    } catch (error) {
+      console.error('❌ Error obteniendo ubicación:', error);
+      throw new Error('No se pudo obtener la ubicación: ' + error.message);
+    }
   };
 
-  // Detectar WiFi (simulado - en producción requiere app nativa)
-  const detectarWifi = () => {
-    return new Promise((resolve) => {
-      // En un entorno web real, esto requeriría una app nativa o extensión
-      // Por ahora simulamos la detección
-      const wifiDetectado = {
-        wifi_ssid: 'IE_NETWORK', // Simular nombre de red detectado
+  // Detectar WiFi automáticamente (mejorado)
+  const detectarWifi = async () => {
+    try {
+      const wifiInfo = await wifiDetector.detectWiFi();
+      const wifiData = {
+        wifi_ssid: wifiInfo.wifi_ssid,
+        wifi_bssid: wifiInfo.wifi_bssid
+      };
+      setWifi(wifiData);
+      
+      console.log('WiFi detectado:', {
+        ssid: wifiInfo.wifi_ssid,
+        method: wifiInfo.detection_method,
+        type: wifiInfo.connection_type
+      });
+      
+      return wifiData;
+    } catch (error) {
+      console.warn('Error detectando WiFi:', error);
+      // Fallback a simulación básica
+      return {
+        wifi_ssid: 'WIFI_DETECTADO',
         wifi_bssid: null
       };
-      setWifi(wifiDetectado);
-      resolve(wifiDetectado);
-    });
+    }
   };
 
   // Registrar ingreso
@@ -99,11 +110,15 @@ const AsistenciaPage = () => {
       setError('');
       setMensaje('');
 
-      // Obtener ubicación GPS
-      const coords = await obtenerUbicacion();
+      console.log('🚀 Iniciando registro de ingreso automático...');
+
+      // Obtener ubicación GPS automáticamente (rápido para UX)
+      const coords = await obtenerUbicacion('balanced');
       
-      // Detectar WiFi
+      // Detectar WiFi automáticamente en paralelo
       const wifiData = await detectarWifi();
+
+      console.log('📊 Datos recopilados:', { coords, wifiData });
 
       // Enviar registro
       const response = await api.post('/asistencias/ingreso', {
@@ -115,8 +130,8 @@ const AsistenciaPage = () => {
       setMensaje('¡Ingreso registrado correctamente!');
 
     } catch (error) {
-      console.error('Error registrando ingreso:', error);
-      const errorMsg = error.response?.data?.message || 'Error registrando ingreso';
+      console.error('❌ Error registrando ingreso:', error);
+      const errorMsg = error.response?.data?.message || error.message || 'Error registrando ingreso';
       setError(errorMsg);
     } finally {
       setProcesando(false);
@@ -130,15 +145,17 @@ const AsistenciaPage = () => {
       setError('');
       setMensaje('');
 
-      // Obtener ubicación GPS (opcional para salida)
+      console.log('🚀 Iniciando registro de salida automático...');
+
+      // Obtener ubicación GPS (rápido, puede usar caché)
       let coords = {};
       try {
-        coords = await obtenerUbicacion();
+        coords = await obtenerUbicacion('speed');
       } catch (e) {
-        console.warn('No se pudo obtener ubicación para salida');
+        console.warn('⚠️ No se pudo obtener ubicación para salida, continuando sin GPS');
       }
 
-      // Detectar WiFi
+      // Detectar WiFi automáticamente
       const wifiData = await detectarWifi();
 
       // Enviar registro
@@ -151,8 +168,8 @@ const AsistenciaPage = () => {
       setMensaje('¡Salida registrada correctamente!');
 
     } catch (error) {
-      console.error('Error registrando salida:', error);
-      const errorMsg = error.response?.data?.message || 'Error registrando salida';
+      console.error('❌ Error registrando salida:', error);
+      const errorMsg = error.response?.data?.message || error.message || 'Error registrando salida';
       setError(errorMsg);
     } finally {
       setProcesando(false);

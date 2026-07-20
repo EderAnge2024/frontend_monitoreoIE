@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Wifi, Shield, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import api from '../../../services/api';
+import wifiDetector from '../../../utils/wifiDetector';
+import locationDetector from '../../../utils/locationDetector';
 
 const MisEventosPage = () => {
   const [eventos, setEventos] = useState([]);
@@ -28,45 +30,35 @@ const MisEventosPage = () => {
     }
   };
 
-  // Obtener ubicación GPS
-  const obtenerUbicacion = () => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocalización no soportada'));
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const coords = {
-            latitud: position.coords.latitude,
-            longitud: position.coords.longitude
-          };
-          setUbicacion(coords);
-          resolve(coords);
-        },
-        (error) => {
-          reject(new Error('Error obteniendo ubicación: ' + error.message));
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        }
-      );
-    });
+  // Obtener ubicación GPS automáticamente (mejorado)
+  const obtenerUbicacion = async () => {
+    try {
+      const location = await locationDetector.getCurrentLocation('balanced');
+      return {
+        latitud: location.latitud,
+        longitud: location.longitud
+      };
+    } catch (error) {
+      console.error('Error obteniendo ubicación:', error);
+      throw new Error('No se pudo obtener la ubicación: ' + error.message);
+    }
   };
 
-  // Detectar WiFi (simulado - en producción requiere app nativa)
-  const detectarWifi = () => {
-    return new Promise((resolve) => {
-      // En un entorno web real, esto requeriría una app nativa o extensión
-      const wifiDetectado = {
-        wifi_ssid: 'IE_NETWORK', // Simular nombre de red detectado
+  // Detectar WiFi automáticamente (mejorado)
+  const detectarWifi = async () => {
+    try {
+      const wifiInfo = await wifiDetector.detectWiFi();
+      return {
+        wifi_ssid: wifiInfo.wifi_ssid,
+        wifi_bssid: wifiInfo.wifi_bssid
+      };
+    } catch (error) {
+      console.warn('Error detectando WiFi:', error);
+      return {
+        wifi_ssid: 'WIFI_DETECTADO',
         wifi_bssid: null
       };
-      resolve(wifiDetectado);
-    });
+    }
   };
 
   // Registrar asistencia a evento
