@@ -338,6 +338,23 @@ const AsistenciaPage = () => {
           <div>Lng: {ubicacion.longitud.toFixed(6)}</div>
         </div>
       )}
+
+      {/* Información adicional */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start">
+          <AlertTriangle className="w-5 h-5 text-blue-600 mr-2 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-medium text-blue-800 mb-1">Información Importante:</p>
+            <ul className="text-blue-700 space-y-1">
+              <li>• Solo puede registrar ingreso y salida una vez por día</li>
+              <li>• Debe encontrarse dentro del perímetro de la institución</li>
+              <li>• El sistema validará automáticamente su ubicación GPS</li>
+              <li>• El registro fuera del horario se marcará como tardanza</li>
+              <li>• Mantenga activada la ubicación en su dispositivo</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -23,7 +23,8 @@ import {
   FolderOpen,
   TrendingUp,
   Clock,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  BarChart2
 } from 'lucide-react';
 
 
@@ -79,6 +80,8 @@ const DashboardLayout = ({ children }) => {
     { name: 'FUTs Institucionales', icon: <FileText size={20} />, path: '/futs', roles: ['administrador', 'director'] },
     { name: 'Niveles de Desempeño', icon: <Target size={20} />, path: '/niveles-desempeno', roles: ['administrador'] },
     { name: 'Eventos Institucionales', icon: <CalendarIcon size={20} />, path: '/eventos', roles: ['administrador', 'director'] },
+    { name: 'Configurar Asistencia', icon: <Settings size={20} />, path: '/configuracion-asistencia', roles: ['administrador', 'director'] },
+    { name: 'Reportes de Asistencia', icon: <BarChart2 size={20} />, path: '/reportes-asistencia', roles: ['administrador', 'director'] },
     { name: 'Realizar Monitoreo', icon: <ClipboardCheck size={20} />, path: '/monitoreo/nuevo', roles: ['administrador', 'director', 'especialista'] },
     { name: 'Historial Monitoreos', icon: <ClipboardList size={20} />, path: '/monitoreo/historial', roles: ['administrador', 'director', 'especialista'] },
     { name: 'Mis Monitoreos', icon: <FileText size={20} />, path: '/mis-monitoreos', roles: ['docente'] },
