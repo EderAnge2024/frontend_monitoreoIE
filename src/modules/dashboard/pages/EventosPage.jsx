@@ -155,152 +155,186 @@ const EventosPage = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Eventos Institucionales</h1>
-          <p className="text-gray-600">Gestión de eventos y registro de asistencias</p>
-        </div>
-        <button
-          onClick={() => abrirModal()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo Evento
-        </button>
-      </div>
-
-      {/* Mensajes */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <span className="text-red-700">{error}</span>
-        </div>
-      )}
-
-      {mensaje && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-          <span className="text-green-700">{mensaje}</span>
-        </div>
-      )}
-
-      {/* Lista de Eventos */}
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {eventos.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>No hay eventos creados</p>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header con gradiente */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-4 rounded-2xl shadow-lg">
+              <Calendar className="w-8 h-8 text-white" />
             </div>
-          ) : (
-            eventos.map(evento => (
-              <div key={evento.id_evento} className="bg-white rounded-lg shadow-md border p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-1">
-                      {evento.nombre_evento}
-                    </h3>
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        <span className="capitalize">{formatearFecha(evento.fecha)}</span>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                Eventos Institucionales
+              </h1>
+              <p className="text-gray-600 mt-1">Gestión de eventos y registro de asistencias</p>
+            </div>
+          </div>
+          <button
+            onClick={() => abrirModal()}
+            className="group relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-indigo-700 flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="font-medium">Nuevo Evento</span>
+          </button>
+        </div>
+
+        {/* Mensajes mejorados */}
+        {error && (
+          <div className="bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-400 rounded-lg p-4 mb-6 shadow-md animate-slide-down">
+            <span className="text-red-800 font-medium">{error}</span>
+          </div>
+        )}
+
+        {mensaje && (
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-400 rounded-lg p-4 mb-6 shadow-md animate-slide-down">
+            <span className="text-green-800 font-medium">{mensaje}</span>
+          </div>
+        )}
+
+        {/* Lista de Eventos mejorada */}
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+              <Calendar className="w-8 h-8 text-purple-600 absolute inset-0 m-auto" />
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-6">
+            {eventos.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="bg-gradient-to-br from-gray-100 to-gray-200 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                  <Calendar className="w-12 h-12 text-gray-400" />
+                </div>
+                <p className="text-gray-500 text-lg">No hay eventos creados</p>
+                <button
+                  onClick={() => abrirModal()}
+                  className="mt-4 text-purple-600 hover:text-purple-700 font-medium"
+                >
+                  Crear el primer evento
+                </button>
+              </div>
+            ) : (
+              eventos.map(evento => (
+                <div key={evento.id_evento} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 p-8 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-4 mb-3">
+                        <div className="bg-gradient-to-br from-purple-500 to-blue-500 p-3 rounded-xl shadow-lg">
+                          <Calendar className="w-6 h-6 text-white" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-800">
+                          {evento.nombre_evento}
+                        </h3>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        <span>
-                          {formatearHora(evento.hora_inicio)}
-                          {evento.hora_fin && ` - ${formatearHora(evento.hora_fin)}`}
-                        </span>
+                      
+                      <div className="flex flex-wrap gap-6 text-gray-600 mb-4">
+                        <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg">
+                          <Calendar className="w-4 h-4 text-blue-600" />
+                          <span className="capitalize font-medium">{formatearFecha(evento.fecha)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-green-50 px-3 py-2 rounded-lg">
+                          <Clock className="w-4 h-4 text-green-600" />
+                          <span className="font-medium">
+                            {formatearHora(evento.hora_inicio)}
+                            {evento.hora_fin && ` - ${formatearHora(evento.hora_fin)}`}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg">
+                          <Users className="w-4 h-4 text-purple-600" />
+                          <span className="font-medium">{evento.total_asistentes} asistentes</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        <span>{evento.total_asistentes} asistentes</span>
-                      </div>
+                      
+                      {evento.descripcion && (
+                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                          <p className="text-gray-700 leading-relaxed">{evento.descripcion}</p>
+                        </div>
+                      )}
                     </div>
-                    {evento.descripcion && (
-                      <p className="text-gray-600 text-sm">{evento.descripcion}</p>
+                    <div className="ml-6">
+                      <span className={`px-4 py-2 rounded-full text-sm font-bold shadow-md ${getEstadoColor(evento.estado)}`}>
+                        {evento.estado}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Botones de acción mejorados */}
+                  <div className="flex flex-wrap gap-3 pt-6 border-t border-gray-200">
+                    <button
+                      onClick={() => abrirModal(evento)}
+                      className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg text-sm font-medium transition-colors duration-200"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Editar
+                    </button>
+
+                    <button
+                      onClick={() => verAsistentes(evento)}
+                      className="flex items-center gap-2 px-4 py-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg text-sm font-medium transition-colors duration-200"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Ver Asistentes
+                    </button>
+
+                    {evento.estado === 'PENDIENTE' && (
+                      <button
+                        onClick={() => cambiarEstado(evento.id_evento, 'EN_REGISTRO')}
+                        className="flex items-center gap-2 px-4 py-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg text-sm font-medium transition-colors duration-200"
+                      >
+                        <Check className="w-4 h-4" />
+                        Abrir Registro
+                      </button>
+                    )}
+
+                    {evento.estado === 'EN_REGISTRO' && (
+                      <button
+                        onClick={() => cambiarEstado(evento.id_evento, 'CERRADO')}
+                        className="flex items-center gap-2 px-4 py-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg text-sm font-medium transition-colors duration-200"
+                      >
+                        <X className="w-4 h-4" />
+                        Cerrar Evento
+                      </button>
+                    )}
+
+                    {(evento.estado === 'PENDIENTE' || evento.estado === 'EN_REGISTRO') && (
+                      <button
+                        onClick={() => cambiarEstado(evento.id_evento, 'ANULADO')}
+                        className="flex items-center gap-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors duration-200"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Anular
+                      </button>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getEstadoColor(evento.estado)}`}>
-                      {evento.estado}
-                    </span>
-                  </div>
                 </div>
+              ))
+            )}
+          </div>
+        )}
 
-                <div className="flex gap-2 pt-4 border-t">
-                  <button
-                    onClick={() => abrirModal(evento)}
-                    className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Editar
-                  </button>
-
-                  <button
-                    onClick={() => verAsistentes(evento)}
-                    className="flex items-center gap-1 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg text-sm"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Ver Asistentes
-                  </button>
-
-                  {evento.estado === 'PENDIENTE' && (
-                    <button
-                      onClick={() => cambiarEstado(evento.id_evento, 'EN_REGISTRO')}
-                      className="flex items-center gap-1 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg text-sm"
-                    >
-                      <Check className="w-4 h-4" />
-                      Abrir Registro
-                    </button>
-                  )}
-
-                  {evento.estado === 'EN_REGISTRO' && (
-                    <button
-                      onClick={() => cambiarEstado(evento.id_evento, 'CERRADO')}
-                      className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm"
-                    >
-                      <X className="w-4 h-4" />
-                      Cerrar Evento
-                    </button>
-                  )}
-
-                  {(evento.estado === 'PENDIENTE' || evento.estado === 'EN_REGISTRO') && (
-                    <button
-                      onClick={() => cambiarEstado(evento.id_evento, 'ANULADO')}
-                      className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Anular
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Modal Formulario */}
+      {/* Modal Formulario mejorado */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">
-                {editMode ? 'Editar Evento' : 'Nuevo Evento'}
-              </h2>
-              <button onClick={cerrarModal} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 rounded-t-2xl">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold">
+                  {editMode ? 'Editar Evento' : 'Nuevo Evento'}
+                </h2>
+                <button 
+                  onClick={cerrarModal} 
+                  className="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
                   Nombre del Evento *
                 </label>
                 <input
@@ -308,13 +342,14 @@ const EventosPage = () => {
                   name="nombre_evento"
                   value={formData.nombre_evento}
                   onChange={handleInputChange}
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  placeholder="Ej: Reunión Pedagógica Mensual"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
                   Fecha *
                 </label>
                 <input
@@ -322,14 +357,14 @@ const EventosPage = () => {
                   name="fecha"
                   value={formData.fecha}
                   onChange={handleInputChange}
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
                     Hora Inicio *
                   </label>
                   <input
@@ -337,12 +372,12 @@ const EventosPage = () => {
                     name="hora_inicio"
                     value={formData.hora_inicio}
                     onChange={handleInputChange}
-                    className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
                     Hora Fin
                   </label>
                   <input
@@ -350,21 +385,21 @@ const EventosPage = () => {
                     name="hora_fin"
                     value={formData.hora_fin}
                     onChange={handleInputChange}
-                    className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
 
               {editMode && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
                     Estado
                   </label>
                   <select
                     name="estado"
                     value={formData.estado}
                     onChange={handleInputChange}
-                    className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   >
                     <option value="PENDIENTE">PENDIENTE</option>
                     <option value="EN_REGISTRO">EN_REGISTRO</option>
@@ -375,30 +410,30 @@ const EventosPage = () => {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
                   Descripción
                 </label>
                 <textarea
                   name="descripcion"
                   value={formData.descripcion}
                   onChange={handleInputChange}
-                  rows="3"
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows="4"
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
                   placeholder="Descripción opcional del evento..."
                 />
               </div>
 
-              <div className="flex gap-2 pt-4">
+              <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl hover:from-purple-700 hover:to-blue-700 font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
                 >
-                  {editMode ? 'Actualizar' : 'Crear Evento'}
+                  {editMode ? 'Actualizar Evento' : 'Crear Evento'}
                 </button>
                 <button
                   type="button"
                   onClick={cerrarModal}
-                  className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl hover:bg-gray-300 font-bold transition-colors"
                 >
                   Cancelar
                 </button>
@@ -480,6 +515,7 @@ const EventosPage = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
