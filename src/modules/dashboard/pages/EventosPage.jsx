@@ -1,6 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Calendar, Clock, Users, Edit, Eye, X, Check, Trash2 } from 'lucide-react';
+import { Plus, Calendar, Clock, Users, Edit, Eye, X, Check, Trash2, MapPin } from 'lucide-react';
 import api from '../../../services/api';
+import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+});
+
+const LocationMarker = ({ position, setPosition }) => {
+  useMapEvents({
+    click(e) {
+      setPosition(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return position ? <Marker position={position}></Marker> : null;
+};
 
 const EventosPage = () => {
   const [eventos, setEventos] = useState([]);
@@ -15,7 +38,10 @@ const EventosPage = () => {
     hora_inicio: '',
     hora_fin: '',
     descripcion: '',
-    estado: 'PENDIENTE'
+    estado: 'PENDIENTE',
+    lat: null,
+    lng: null,
+    radio_metros: 100
   });
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
@@ -46,7 +72,10 @@ const EventosPage = () => {
       hora_inicio: '',
       hora_fin: '',
       descripcion: '',
-      estado: 'PENDIENTE'
+      estado: 'PENDIENTE',
+      lat: null,
+      lng: null,
+      radio_metros: 100
     });
     setEditMode(false);
     setEventoSeleccionado(null);
@@ -60,7 +89,10 @@ const EventosPage = () => {
         hora_inicio: evento.hora_inicio,
         hora_fin: evento.hora_fin || '',
         descripcion: evento.descripcion || '',
-        estado: evento.estado
+        estado: evento.estado,
+        lat: evento.lat || null,
+        lng: evento.lng || null,
+        radio_metros: evento.radio_metros || 100
       });
       setEventoSeleccionado(evento);
       setEditMode(true);
@@ -113,6 +145,18 @@ const EventosPage = () => {
     } catch (error) {
       console.error('Error cambiando estado:', error);
       setError(error.response?.data?.message || 'Error cambiando estado');
+    }
+  };
+
+  const eliminarEvento = async (id_evento) => {
+    if (!window.confirm('¿Está seguro de eliminar este evento? Esta acción no se puede deshacer.')) return;
+    try {
+      await api.delete(`/eventos/${id_evento}`);
+      setMensaje('Evento eliminado exitosamente');
+      cargarEventos();
+    } catch (error) {
+      console.error('Error eliminando evento:', error);
+      setError(error.response?.data?.message || 'Error eliminando evento');
     }
   };
 
@@ -307,6 +351,15 @@ const EventosPage = () => {
                         Anular
                       </button>
                     )}
+
+                    <button
+                      onClick={() => eliminarEvento(evento.id_evento)}
+                      className="flex items-center gap-2 px-4 py-2 text-gray-400 hover:text-white hover:bg-red-600 rounded-lg text-sm font-medium transition-colors duration-200 ml-auto"
+                      title="Eliminar permanentemente"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Borrar
+                    </button>
                   </div>
                 </div>
               ))
@@ -388,6 +441,54 @@ const EventosPage = () => {
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Ubicación (Opcional - Haz clic en el mapa)
+                </label>
+                <div className="w-full h-48 rounded-xl border-2 border-gray-200 overflow-hidden relative z-0">
+                  <MapContainer 
+                    center={formData.lat && formData.lng ? [formData.lat, formData.lng] : [-12.0464, -77.0428]} 
+                    zoom={15} 
+                    scrollWheelZoom={true}
+                    style={{ height: "100%", width: "100%" }}
+                  >
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <LocationMarker 
+                      position={formData.lat && formData.lng ? [formData.lat, formData.lng] : null} 
+                      setPosition={(lat, lng) => setFormData({...formData, lat, lng})} 
+                    />
+                    {formData.lat && formData.lng && formData.radio_metros && (
+                      <Circle 
+                        center={[formData.lat, formData.lng]} 
+                        radius={formData.radio_metros}
+                        pathOptions={{ fillColor: '#3B82F6', color: '#2563EB', fillOpacity: 0.2 }}
+                      />
+                    )}
+                  </MapContainer>
+                </div>
+                {formData.lat && formData.lng && (
+                  <div className="mt-2 text-xs text-blue-600 font-medium bg-blue-50 p-2 rounded-lg flex items-center justify-between">
+                    <span>📍 Coordenadas seleccionadas</span>
+                    <button type="button" onClick={() => setFormData({...formData, lat: null, lng: null})} className="text-red-500 hover:text-red-700 font-bold">Limpiar</button>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Radio permitido (metros)
+                </label>
+                <input
+                  type="number"
+                  name="radio_metros"
+                  value={formData.radio_metros}
+                  onChange={handleInputChange}
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  min="10"
+                  max="5000"
+                />
               </div>
 
               {editMode && (

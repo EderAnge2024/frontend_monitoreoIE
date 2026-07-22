@@ -87,9 +87,9 @@ const AppRoutes = () => {
       <Route path="/seguimiento" element={<ProtectedRoute roles={['administrador', 'director', 'especialista', 'docente']}><SeguimientoPage /></ProtectedRoute>} />
       <Route path="/solicitudes" element={<ProtectedRoute roles={['administrador', 'director', 'docente']}><SolicitudesPage /></ProtectedRoute>} />
       <Route path="/gestion-documental" element={<ProtectedRoute roles={['administrador', 'director', 'docente']}><GestionDocumentalPage /></ProtectedRoute>} />
-      <Route path="/eventos" element={<ProtectedRoute roles={['administrador', 'director']}><EventosPage /></ProtectedRoute>} />
-      <Route path="/configuracion-asistencia" element={<ProtectedRoute roles={['administrador', 'director']}><ConfiguracionAsistenciaPage /></ProtectedRoute>} />
-      <Route path="/reportes-asistencia" element={<ProtectedRoute roles={['administrador', 'director']}><ReportesAsistenciaPage /></ProtectedRoute>} />
+      <Route path="/eventos" element={<ProtectedRoute roles={['director']}><EventosPage /></ProtectedRoute>} />
+      <Route path="/configuracion-asistencia" element={<ProtectedRoute roles={['director']}><ConfiguracionAsistenciaPage /></ProtectedRoute>} />
+      <Route path="/reportes-asistencia" element={<ProtectedRoute roles={['administrador', 'director', 'especialista']}><ReportesAsistenciaPage /></ProtectedRoute>} />
 
       {/* Teacher Modules */}
       <Route path="/mis-monitoreos" element={<ProtectedRoute roles={['docente']}><MisMonitoreosPage /></ProtectedRoute>} />

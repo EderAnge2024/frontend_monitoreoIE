@@ -238,14 +238,25 @@ const AsistenciaPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden p-6 font-sans">
+      {/* Elementos decorativos de fondo */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/20 blur-[100px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-400/20 blur-[100px] pointer-events-none"></div>
+      
+      <div className="max-w-2xl mx-auto relative z-10">
         {/* Header con gradiente */}
-        <div className="text-center mb-8">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl p-6 shadow-xl">
-            <Clock className="w-12 h-12 mx-auto mb-4 animate-pulse" />
-            <h1 className="text-3xl font-bold mb-2">Mi Asistencia</h1>
-            <p className="text-blue-100 capitalize text-lg">{fechaActual}</p>
+        <div className="text-center mb-10">
+          <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-[2rem] p-8 shadow-2xl shadow-indigo-500/30">
+            {/* Overlay para efecto de brillo */}
+            <div className="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
+            
+            <div className="relative z-10">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6 backdrop-blur-md shadow-inner border border-white/30">
+                <Clock className="w-10 h-10 animate-pulse" />
+              </div>
+              <h1 className="text-4xl font-extrabold mb-3 tracking-tight">Mi Asistencia</h1>
+              <p className="text-blue-100/90 capitalize text-lg font-medium tracking-wide">{fechaActual}</p>
+            </div>
           </div>
         </div>
 
@@ -269,9 +280,9 @@ const AsistenciaPage = () => {
         )}
 
         {/* Estado Actual con diseño mejorado */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-white/50 mb-6 hover:shadow-2xl transition-all duration-300">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mr-3">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[2rem] shadow-2xl shadow-slate-200/50 p-8 sm:p-10 border border-white/80 mb-8 hover:shadow-indigo-500/10 transition-all duration-500 group">
+          <h2 className="text-2xl font-extrabold mb-8 text-slate-800 flex items-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-4 shadow-lg shadow-blue-500/30 transform group-hover:scale-110 transition-transform duration-300">
               <Clock className="w-5 h-5 text-white" />
             </div>
             Estado Actual
@@ -280,31 +291,30 @@ const AsistenciaPage = () => {
           {!asistencia ? (
             <div className="text-center py-12">
               <div className="relative">
-                <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                  <Clock className="w-12 h-12 text-gray-400 animate-pulse" />
+                <div className="w-28 h-28 bg-gradient-to-br from-slate-50 to-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-slate-200/50">
+                  <Clock className="w-12 h-12 text-slate-400 animate-pulse" />
                 </div>
-                <div className="absolute inset-0 w-24 h-24 mx-auto rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin"></div>
+                <div className="absolute inset-0 w-28 h-28 mx-auto rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin"></div>
               </div>
-              <p className="text-gray-600 text-xl mb-8 font-medium">No registrado hoy</p>
+              <p className="text-slate-500 text-xl mb-10 font-medium">Aún no has registrado tu asistencia hoy</p>
               <button
                 onClick={registrarIngreso}
                 disabled={procesando}
-                className="group relative bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-10 py-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                className="group relative w-full sm:w-auto overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 bg-[length:200%_auto] text-white px-12 py-4 rounded-2xl hover:bg-right disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-xl shadow-blue-500/30 transform hover:-translate-y-1 transition-all duration-500"
               >
-                <span className="relative z-10 flex items-center">
+                <span className="relative z-10 flex items-center justify-center">
                   {procesando ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
                       Procesando...
                     </>
                   ) : (
                     <>
-                      <MapPin className="w-5 h-5 mr-3" />
+                      <MapPin className="w-6 h-6 mr-3 group-hover:animate-bounce" />
                       REGISTRAR INGRESO
                     </>
                   )}
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </button>
             </div>
           ) : (
@@ -399,26 +409,26 @@ const AsistenciaPage = () => {
 
               {/* Botón de Salida mejorado */}
               {!asistencia.hora_salida ? (
-                <div className="text-center pt-6">
+                <div className="text-center pt-8 border-t border-slate-100">
+                  <p className="text-slate-500 mb-6 font-medium">¿Terminaste tu jornada?</p>
                   <button
                     onClick={registrarSalida}
                     disabled={procesando}
-                    className="group relative bg-gradient-to-r from-green-600 to-emerald-600 text-white px-10 py-4 rounded-xl hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                    className="group relative w-full sm:w-auto overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 bg-[length:200%_auto] text-white px-12 py-4 rounded-2xl hover:bg-right disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-xl shadow-emerald-500/30 transform hover:-translate-y-1 transition-all duration-500"
                   >
-                    <span className="relative z-10 flex items-center">
+                    <span className="relative z-10 flex items-center justify-center">
                       {procesando ? (
                         <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
                           Procesando...
                         </>
                       ) : (
                         <>
-                          <Clock className="w-5 h-5 mr-3" />
+                          <Clock className="w-6 h-6 mr-3 group-hover:animate-pulse" />
                           REGISTRAR SALIDA
                         </>
                       )}
                     </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </button>
                 </div>
               ) : (
@@ -466,10 +476,11 @@ const AsistenciaPage = () => {
         )}
 
         {/* Información adicional con mejor diseño */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6 shadow-md">
-          <div className="flex items-start">
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-4 mt-1">
-              <AlertTriangle className="w-5 h-5 text-white" />
+        <div className="bg-white/60 backdrop-blur-md rounded-[1.5rem] border border-blue-100 p-8 shadow-xl shadow-blue-500/5 relative overflow-hidden group hover:bg-white/80 transition-colors duration-500">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/10 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110"></div>
+          <div className="flex items-start relative z-10">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-5 shadow-lg shadow-blue-500/20 shrink-0">
+              <AlertTriangle className="w-6 h-6 text-white" />
             </div>
             <div>
               <p className="font-bold text-blue-800 mb-3">Información Importante:</p>
